@@ -1,0 +1,4 @@
+# Veripsa release gate (auto-discovered). One gate per file -> two PRs adding gates add two
+# FILES, never a shared line -> no false merge conflict on registration. register_gate is
+# defined in run_gates.sh. Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail]
+register_gate "tests/test_per_path_unknown.py" "PER-PATH UNKNOWN GATE: PASS" "per-path unknown verdict" "per-path unknown verdict (Clear is allowed only when every unknown path is proven newly added, a known path remains, analysis is complete, and no dampened coupling exists; collisions still win)" "per-path unknown (missing added-path evidence, existing graph gaps, all-new changes, truncated analysis, and missing engine verdicts must stay Unknown)" 32

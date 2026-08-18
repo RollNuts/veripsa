@@ -1,0 +1,4 @@
+# Veripsa release gate (auto-discovered). One gate per file -> two PRs adding gates add two
+# FILES, never a shared line -> no false merge conflict on registration. register_gate is
+# defined in run_gates.sh. Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail]
+register_gate "tests/test_routes_rust.py" "RUST-ROUTES GATE: PASS" "rust route extraction actix axum" "Rust backend route strings extracted from Actix-web attribute macros and Axum .route() calls; bare Rust strings without the macro or .route( anchor are not swept; template params normalized to {}; both frameworks found in a combined file" "Rust route-def extraction: Actix-web attribute macros (#[get/post/put/patch/delete]) and Axum .route() calls contribute route nodes to the cross-tier route detector; .rs was already in BACKEND_EXT but had no dispatch branch; precision guard confirms bare string literals in Rust code are not matched" 14

@@ -1,0 +1,4 @@
+# Veripsa release gate (auto-discovered). One gate per file -> two PRs adding gates add two
+# FILES, never a shared line -> no false merge conflict on registration. register_gate is
+# defined in run_gates.sh. Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail]
+register_gate "tests/test_account_erasure.py" "ACCOUNT ERASURE GATE: PASS" "account erasure" "account erasure (erase_account_with_authority hard-deletes the WHOLE tenant — incl. the immutable event/statement streams + GH-login agents + both sides of follow — token-scoped so OTHER tenants stay append-only; App-delegation only)" "account erasure / RIGHT-TO-DELETION (full account hard-delete reconciled with the append-only ledgers: account-scoped, App-only, other tenants stay immutable)" 20

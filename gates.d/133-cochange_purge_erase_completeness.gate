@@ -1,0 +1,5 @@
+# Veripsa release gate (auto-discovered). One gate per file -> two PRs adding gates add two FILES, never a
+# shared line -> no false merge conflict on registration. register_gate is defined in run_gates.sh.
+# Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail]
+# NOTE: NO backticks and NO dollar-sign in the desc/blurb text below (shell-eval fragility -- see CLAUDE.md).
+register_gate "tests/test_cochange_purge_erase_completeness.py" "CO-CHANGE PURGE/ERASE COMPLETENESS GATE: PASS" "co-change purge/erase completeness (strict: uninstall purge and right-to-erasure delete co_change paths, the seen-commit ledger, and durable inbox rows; deletion receipts match; neighbour tenant untouched)" "co-change purge/erase completeness: strict regression gate for the resolved retention defect -- any surviving tenant co_change or seen-commit row, incorrect deletion receipt, cross-tenant deletion, durable-inbox residue, key-format mismatch, or unenumerated account_key table fails" 44

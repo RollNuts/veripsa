@@ -1,0 +1,2 @@
+# Veripsa release gate (auto-discovered). register_gate is defined in run_gates.sh.
+register_gate "tests/test_pauseack_ack_recognition.py" "PAUSE ACK RECOGNITION GATE: PASS" "pause-ack recognition" "a present matching acknowledgement clears the pause and remains stable across graph-freshness changes" "synthetic integration fixture: file-level coupling identity is freshness-independent, every partner remains represented, a matching acknowledgement stays neutral, and a genuinely changed coupling re-raises action_required" 40

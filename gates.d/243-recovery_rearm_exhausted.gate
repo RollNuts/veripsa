@@ -1,0 +1,4 @@
+# Veripsa release gate (auto-discovered). One gate per file -> two PRs adding gates add two
+# FILES, never a shared line -> no false merge conflict on registration. register_gate is
+# defined in run_gates.sh. Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail]
+register_gate "tests/test_recovery_rearm_exhausted.py" "RECOVERY REARM EXHAUSTED GATE: PASS" "recovery-rearm-exhausted" "recovery-rearm-exhausted (an EXHAUSTED but still-redeliverable, still-in-window failed GitHub delivery is given ONE fresh attempt-budget once its last attempt is older than the re-arm age, so a transient-outage casualty is not stuck exhausted + CRITICAL-alerting for the whole ~33-day retention; age/window/class/resolved gates all proven against a real Postgres; App-only ACL)" "recovery-rearm-exhausted (DURABILITY: exhausted redeliverable rows get one bounded fresh try instead of paging CRITICAL for ~33 days; never touches terminal/out-of-window/resolved; App-only)" 6

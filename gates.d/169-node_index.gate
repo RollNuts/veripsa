@@ -1,0 +1,4 @@
+# Veripsa release gate (auto-discovered). One gate per file -> two PRs adding gates add two
+# FILES, never a shared line -> no false merge conflict on registration. register_gate is
+# defined in run_gates.sh. Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail]
+register_gate "tests/test_node_index.py" "CODE NODE INDEX GATE: PASS" "code node index" "code node index (core.code_node carries the (account_id,repo,branch,node_id) index, and core._claim_adjacency's node_id lookup — node_file join code_node.node_id=code_edge.src — stays an INDEX SCAN not a SEQ SCAN: EXPLAIN-measured cost 71.65 seq-scan w/ 1826 rows-removed -> cost 0.38..8.41 index scan; locks out the 8.3s@20k-node/200-claim + gate-160 cold-stats regression)" "code node index (the _claim_adjacency code_node lookup by node_id stays an index scan -> the synchronous brain path does not seq-scan the whole node set per edge at scale / cold)" 24

@@ -1,0 +1,4 @@
+# Veripsa release gate (auto-discovered). One gate per file -> two PRs adding gates add two
+# FILES, never a shared line -> no false merge conflict on registration. register_gate is
+# defined in run_gates.sh. Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail]
+register_gate "tests/test_cold_graph_stats.py" "COLD GRAPH STATS GATE: PASS" "cold graph stats" "cold graph stats (after a bulk ingest the App refreshes planner stats via core.refresh_graph_stats on a fresh autocommit conn → the first brain call plans the O(edges) adjacency correctly: ~0.5s, not the ~121s cold-stats hang #169)" "cold graph stats (a FRESH/LARGE graph's FIRST main_impact_surface is BOUNDED, not a multi-minute cold-stats hang)" 20

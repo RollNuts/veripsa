@@ -1,0 +1,4 @@
+# Veripsa release gate (auto-discovered). One gate per file -> two PRs adding gates add two
+# FILES, never a shared line -> no false merge conflict on registration. register_gate is
+# defined in run_gates.sh. Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail]
+register_gate "tests/test_backup_manifest_coverage.py" "BACKUP MANIFEST COVERAGE GATE: PASS" "backup-manifest-coverage" "backup-manifest-coverage (schema<->backup drift backstop: every core.* table in db/schema is either in the durable backup set or on an explicit reasoned exclusion allowlist, so a NEW durable table cannot silently escape DR export; also reconciles RESTORE_ORDER / DURABLE_TABLES / COUNT_KEYS against TABLE_META so the four hand-lists cannot diverge)" "backup-manifest-coverage (DR COMPLETENESS: a whole new core table missing from the backup fails LOUD, naming it; complements manifest_drift's per-column check)" 6

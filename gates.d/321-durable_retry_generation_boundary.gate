@@ -1,0 +1,2 @@
+# Veripsa release gate (auto-discovered). One gate per file. register_gate is defined in run_gates.sh.
+register_gate "tests/test_durable_retry_generation_boundary.py" "DURABLE RETRY GENERATION BOUNDARY: PASS" "durable retry generation boundary" "one EventQueue dequeue runs at most one durable DB generation while bare processors retain their short in-memory retry" "prevents the EventQueue retry ceiling from multiplying the durable retry ceiling and recreating multi-minute poison work" 10

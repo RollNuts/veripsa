@@ -1,0 +1,3 @@
+# Veripsa release gate (auto-discovered). Account-wide deletion and multi-statement boot convergence share one DB
+# fence; durable delivery order is the only authority that can cross lifecycle generations.
+register_gate "tests/test_account_lifecycle_fencing.py" "ACCOUNT LIFECYCLE FENCING GATE: PASS" "account lifecycle fencing" "boot reconciliation cannot write past uninstall/GDPR erase, and stale activation/deletion deliveries cannot overwrite a newer lifecycle generation" "Two live PostgreSQL sessions prove uninstall and GDPR erase wait for an in-flight boot pass then reap it; durable (received_at,delivery_key) high-water marks reject create(t1) after delete(t2), allow create(t3), and reject a replayed delete(t2) without deleting generation-t3 data." 20 90

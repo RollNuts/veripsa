@@ -1,0 +1,4 @@
+# Veripsa release gate (auto-discovered). One gate per file -> two PRs adding gates add two
+# FILES, never a shared line -> no false merge conflict on registration. register_gate is
+# defined in run_gates.sh. Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail]
+register_gate "tests/test_site_keepwarm.py" "SITE KEEPWARM GATE: PASS" "site keepwarm" "site keep-warm boundaries (off unless a target is configured, HTTPS only, the response body is never read, a User-Agent is always sent, every failure is swallowed, and the thread is a daemon — so an ops stopgap for a sleeping instance tier can never log a remote response, repeat the UA-less 403 outage, or hold webhook processing open)" "site keep-warm boundaries (the previous pinger was a scheduled workflow that failed 100 runs in a row unnoticed; moving it in-process must not put a remote response anywhere near this service)" 20

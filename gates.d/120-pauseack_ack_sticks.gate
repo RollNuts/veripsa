@@ -1,0 +1,2 @@
+# Veripsa release gate (auto-discovered). register_gate is defined in run_gates.sh.
+register_gate "tests/test_pauseack_ack_sticks.py" "PAUSE ACK STICKS GATE: PASS" "pause-ack stickiness" "a valid acknowledgement remains neutral on acting and neighbor paths until a coupling change is proven" "synthetic integration fixture: unreadable prior state and empty healthy recomputes preserve the acknowledgement, strict neighbor reads fail open, and a real coupling change still strips the label" 40

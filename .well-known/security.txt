@@ -1,0 +1,6 @@
+# Veripsa security contact (RFC 9116)
+Contact: https://github.com/RollNuts/veripsa/security/advisories/new
+Expires: 2027-08-18T00:00:00Z
+Preferred-Languages: en, ja
+Canonical: https://raw.githubusercontent.com/RollNuts/veripsa/main/.well-known/security.txt
+Policy: https://github.com/RollNuts/veripsa/blob/main/SECURITY.md

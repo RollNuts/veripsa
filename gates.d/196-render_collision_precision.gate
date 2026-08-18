@@ -1,0 +1,2 @@
+# Veripsa release gate (auto-discovered). register_gate is defined in run_gates.sh.
+register_gate "tests/test_render_collision_precision.py" "RENDER COLLISION PRECISION GATE: PASS" "collision wording precision" "semantic-only warnings do not claim a textual conflict and rebase guidance remains explicitly heuristic" "synthetic render fixture: warn copy leads with semantic coupling, low-value and hard collision headlines avoid certainty, and the explanation retains useful path and line metadata without bodies" 16

@@ -1,0 +1,4 @@
+# Veripsa release gate (auto-discovered). One gate per file -> two PRs adding gates add two
+# FILES, never a shared line -> no false merge conflict on registration. register_gate is
+# defined in run_gates.sh. Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail]
+register_gate "tests/test_dos_pathological_inputs.py" "DOS PATHOLOGICAL-INPUT GATE: PASS" "DoS pathological-input" "DoS pathological-input (symbol-explosion + deep-nesting + touched_ranges + ReDoS all bounded; degrade to honest file-level, never hang/OOM/crash)" "DoS pathological-input (one crafted file/PR can't blow up the extractor/engine in time/mem/stack; degrades to file-level)" 20

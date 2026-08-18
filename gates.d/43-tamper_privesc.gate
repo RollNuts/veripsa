@@ -1,0 +1,4 @@
+# Veripsa release gate (auto-discovered). One gate per file -> two PRs adding gates add two
+# FILES, never a shared line -> no false merge conflict on registration. register_gate is
+# defined in run_gates.sh. Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail]
+register_gate "tests/test_tamper_privesc.py" "TAMPER PRIVESC GATE: PASS" "tamper privesc" "tamper privesc (catalog proves ZERO SECURITY DEFINER fns lack a pinned search_path — a future fn that forgets it fails here, naming itself; every pin is the standard 'core, pg_catalog'; AND no tenant role can CREATE in public/core [has_schema_privilege + a LIVE CREATE FUNCTION refused], so even an unpinned fn would have nowhere to plant a shadow object)" "tamper privesc / SECURITY DEFINER search_path HIJACK (every SECDEF gate fn must pin a safe path so it never runs tenant-shadowed code AS the owner; SECURITY-critical)" 20

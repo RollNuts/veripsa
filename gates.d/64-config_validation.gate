@@ -1,0 +1,4 @@
+# Veripsa release gate (auto-discovered). One gate per file -> two PRs adding gates add two
+# FILES, never a shared line -> no false merge conflict on registration. register_gate is
+# defined in run_gates.sh. Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail]
+register_gate "tests/test_config_validation.py" "CONFIG-VALIDATION GATE: PASS" "config validation" "config validation (env_int refuses non-int/0/negative/out-of-range LOUDLY naming the var; the worst silent misconfig — PER_ACCOUNT_QUEUE_CAP=0 alive-but-503s-everything — now refuses to start; retention floor enforces the 14-day collisions_on_main window)" "config validation (a MISSING/MALFORMED env knob fails SAFE: loud refusal, not silent-broken/insecure)" 20

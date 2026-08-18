@@ -1,0 +1,86 @@
+name: Scoped bugfix task
+description: Bugfix work order with explicit safety boundaries
+title: "[Bugfix] "
+labels: ["bugfix"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Share safe metadata only. Do not paste source file bodies, diff bodies, credentials, secrets/tokens, webhook payloads, GitHub App private keys, installation access tokens, or customer secrets. For suspected vulnerabilities, follow `SECURITY.md` instead of opening a public issue.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What is broken? Include observed behavior and expected behavior.
+      placeholder: |
+        Observed:
+        Expected:
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction / evidence
+      description: A synthetic failing test or content-free local command. Do not include logs, private URLs, identifiers, or customer data.
+      placeholder: |
+        - Failing command:
+        - Synthetic fixture:
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: Allowed scope
+      description: Files or systems that may be edited.
+      placeholder: |
+        Allowed:
+        - tests/**
+        - github-app/<specific-file>.py
+    validations:
+      required: true
+
+  - type: textarea
+    id: do-not-edit
+    attributes:
+      label: Do not edit
+      value: |
+        Do not edit unrelated files.
+        Do not change auth, billing, GitHub App permissions, database migrations, RLS, or content-free boundaries unless explicitly listed in Allowed scope.
+    validations:
+      required: true
+
+  - type: textarea
+    id: fix-contract
+    attributes:
+      label: Fix contract
+      description: What kind of fix is acceptable?
+      placeholder: |
+        - Add or update a failing test first when practical.
+        - Keep the fix minimal.
+        - Do not refactor adjacent code unless required by the bug.
+    validations:
+      required: true
+
+  - type: textarea
+    id: validation
+    attributes:
+      label: Validation
+      description: Required checks for the bugfix.
+      placeholder: |
+        - Run the failing test or smallest relevant test command.
+        - If not run, explain why in the PR body.
+    validations:
+      required: true
+
+  - type: textarea
+    id: veripsa
+    attributes:
+      label: Veripsa handling
+      value: |
+        - The project-hosted Veripsa service is suspended.
+        - Include Veripsa state as not observed in the PR body.
+    validations:
+      required: true

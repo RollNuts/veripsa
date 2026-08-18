@@ -1,0 +1,2 @@
+# Veripsa release gate (auto-discovered). Locks the public /statusz privacy boundary.
+register_gate "tests/test_public_statusz.py" "PUBLIC STATUSZ GATE: PASS" "public statusz" "public /statusz boundary (coarse status only; canary evidence stays operator-only)" "public /statusz exposes coarse health without repo/PR/delivery/check-run identifiers" 20

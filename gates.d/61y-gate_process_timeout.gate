@@ -1,0 +1,3 @@
+# Veripsa release gate (auto-discovered). Standard gates run through the process timeout
+# wrapper; this verifies exit propagation and process-group termination before the perf gate.
+register_gate "tests/test_gate_process_timeout.py" "GATE PROCESS TIMEOUT: PASS" "gate process timeout" "standard gate process timeout (success and non-zero exits are preserved; a wedged child process group is terminated with an explicit 124 result)" "gate process timeout (one stalled test fails in bounded time instead of consuming the full release workflow budget)" 16 30

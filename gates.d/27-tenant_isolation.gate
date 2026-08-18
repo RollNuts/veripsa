@@ -1,0 +1,4 @@
+# Veripsa release gate (auto-discovered). One gate per file -> two PRs adding gates add two
+# FILES, never a shared line -> no false merge conflict on registration. register_gate is
+# defined in run_gates.sh. Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail]
+register_gate "tests/test_tenant_isolation.py" "TENANT ISOLATION GATE: PASS" "multi-tenant isolation" "multi-tenant isolation (per-installation account, RLS-walled)" "multi-tenant isolation (two installations → two accounts → can't see each other; SECURITY-critical)" 16

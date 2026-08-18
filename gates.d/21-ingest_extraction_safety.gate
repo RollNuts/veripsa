@@ -1,0 +1,4 @@
+# Veripsa release gate (auto-discovered). One gate per file -> two PRs adding gates add two
+# FILES, never a shared line -> no false merge conflict on registration. register_gate is
+# defined in run_gates.sh. Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail]
+register_gate "tests/test_ingest_extraction_safety.py" "INGEST EXTRACTION SAFETY GATE: PASS" "ingest extraction safety" "ingest extraction safety (zip-slip / traversal / absolute / symlink-escape all refused; legit file extracted)" "ingest extraction safety (a malicious repo tarball / push path can't escape the temp dir; SECURITY-critical)" 16

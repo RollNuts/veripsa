@@ -1,0 +1,4 @@
+# Veripsa release gate (auto-discovered). One gate per file -> two PRs adding gates add two
+# FILES, never a shared line -> no false merge conflict on registration. register_gate is
+# defined in run_gates.sh. Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail]
+register_gate "tests/test_adversarial_claim_id_keys.py" "ADVERSARIAL CLAIM-ID KEYS GATE: PASS" "adversarial-names keys" "adversarial-names keys (claim_id INJECTIVE in (change_id,path) + bounded; the long-sibling-path truncation that PK-collision-crashed _place_claim is closed; change_id stable across paths; push↔PR reconcile keys agree; BR-/PR- namespacing blocks branch→PR forgery; in-cap keys unchanged)" "adversarial-names key forgery/collision (a crafted branch/path can't forge a lane or truncate-collide two changes onto one claim_id; SECURITY-critical)" 20

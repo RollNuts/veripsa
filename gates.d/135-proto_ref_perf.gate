@@ -1,0 +1,4 @@
+# Veripsa release gate (auto-discovered). One gate per file -> two PRs adding gates add two
+# FILES, never a shared line -> no false merge conflict on registration. register_gate is
+# defined in run_gates.sh. Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail]
+register_gate "tests/test_proto_ref_perf.py" "PROTO-REF-PERF GATE: PASS" "proto ref perf" "proto ref perf (_proto_references matches stub forms by stripping fixed suffixes O(idents), not by looping the whole known proto-symbol set O(idents*known) -> byte-identical, and flat in known-set size: large proto repos went from tens of minutes to seconds)" "proto ref perf (_proto_references stays byte-identical AND bounded as the known proto-symbol set grows -> webhook extraction does not blow up on large proto repos)" 24

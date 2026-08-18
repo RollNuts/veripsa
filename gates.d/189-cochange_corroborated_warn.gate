@@ -1,0 +1,4 @@
+# Veripsa release gate (auto-discovered). One gate per file -> two PRs adding gates add two
+# FILES, never a shared line -> no false merge conflict on registration. register_gate is
+# defined in run_gates.sh. Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail]
+register_gate "tests/test_cochange_corroborated_warn.py" "CO-CHANGE-CORROBORATED WARN GATE: PASS" "cochange-corroborated warn" "co-change-corroborated hub coupling earns 'warn' (lift>=2 & co>=3 = two agreeing signals; uncorroborated/empty stays 'unknown'; render copy + content-free)" "co-change corroboration is the ONLY AUDIT3 relaxation: a dampened coupling git history confirms (lift>=2 & co>=3) EARNS 'warn'+corroborated=true; everything else stays unknown" 20

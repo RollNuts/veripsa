@@ -1,0 +1,4 @@
+# Veripsa release gate (auto-discovered). One gate per file -> two PRs adding gates add two
+# FILES, never a shared line -> no false merge conflict on registration. register_gate is
+# defined in run_gates.sh. Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail]
+register_gate "tests/test_new_user_entrance.py" "NEW-USER ENTRANCE GATE: PASS" "new-user entrance" "new-user entrance (empty-repo install ingests nothing/no crash; first graphless PR is honest 'unknown' not fake-clear, advisory+content-free+jargon-clean; first ingest re-evals without double-posting; docs-only first PR is honest-empty)" "new-user entrance (the FIRST RUN: empty-repo install + first PR on a graphless repo + first ingest re-eval)" 16

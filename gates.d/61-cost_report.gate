@@ -1,0 +1,4 @@
+# Veripsa release gate (auto-discovered). One gate per file -> two PRs adding gates add two
+# FILES, never a shared line -> no false merge conflict on registration. register_gate is
+# defined in run_gates.sh. Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail]
+register_gate "tests/test_cost_report.py" "COST-REPORT GATE: PASS" "founder DB-cost report" "founder DB-cost report (renders total size/free-line/over-line marker + top-consumer order; never-crash) + DB-cost alert (db_size_high/account_over_line fire+resolve, edge-triggered, fail-open, content-free)" "founder DB-cost report + DB-cost alert (the operator's cost screen renders; cost watchdog fires/resolves)" 20

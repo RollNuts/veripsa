@@ -1,0 +1,5 @@
+{
+    "payment_gateway_url": "https://pay.example.com/v1",
+    "max_retries": 3,
+    "service_name": "sample-app"
+}

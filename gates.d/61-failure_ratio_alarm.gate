@@ -1,0 +1,4 @@
+# Veripsa release gate (auto-discovered). One gate per file -> two PRs adding gates add two
+# FILES, never a shared line -> no false merge conflict on registration. register_gate is
+# defined in run_gates.sh. Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail]
+register_gate "tests/test_failure_ratio_alarm.py" "FAILURE-RATIO ALARM GATE: PASS" "failure-ratio alarm" "windowed failure-ratio + /alarmz (the 2026-06-25 silent-incident class: 8% steady failure was invisible to /healthz; the ring + ratio + threshold + edge-triggered alarm_state pin a defense that would have paged today)" "windowed failure-ratio signal + /alarmz endpoint (defense against the silent-incident class where /healthz stayed green for an hour while every PR event failed)" 20

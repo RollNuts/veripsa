@@ -1,0 +1,132 @@
+{
+  "_description": "An unknown PR: an existing path is absent from the graph (unverified_gap_path, an extractor gap) and a real coupling with PR-49 was hub-dampened (suppressed_coupling, surfaced so the silence is visible). ack not_material, action_required false.",
+  "brief": {
+    "ack": {
+      "coupling_snapshot": "",
+      "label": "veripsa-ack",
+      "label_action": null,
+      "present": false,
+      "required": false,
+      "state": "not_material"
+    },
+    "acting_change": "PR-52",
+    "acting_head_sha": "7766554433",
+    "action_required": false,
+    "base_branch": "main",
+    "base_sha": "base3333dddd",
+    "enforcement": "advisory",
+    "evaluated_against": [
+      {
+        "head_sha": "h49",
+        "number": 49,
+        "ref": "PR-49",
+        "state": "clear"
+      }
+    ],
+    "freshness": {
+      "analysis_truncated": false,
+      "evaluated_at": "2026-07-21T09:15:00Z",
+      "graph_source_sha": "graph3333dddd",
+      "head_matches": true,
+      "policy_version": "detector-2026.07.1",
+      "status": "current"
+    },
+    "kind": "veripsa.coordination_brief",
+    "relationships": [
+      {
+        "confidence": "unverified",
+        "evidence_kind": "unverified",
+        "recommended_action": "coordinate_before_merge",
+        "related_change": "PR-49",
+        "relationship_kind": "suppressed_coupling",
+        "requires_human_ack": false,
+        "subject": "core/loader.py"
+      },
+      {
+        "confidence": "unverified",
+        "evidence_kind": "unverified",
+        "more_related_paths": false,
+        "recommended_action": "investigate",
+        "related_change": null,
+        "related_paths": [
+          "assets/model.unity"
+        ],
+        "relationship_kind": "unverified_gap_path",
+        "requires_human_ack": false
+      }
+    ],
+    "repository": {
+      "generation": 3,
+      "slug": "acme/app"
+    },
+    "schema_version": "1",
+    "state": "unknown"
+  },
+  "input": {
+    "change_ref": "PR-52",
+    "impact": {
+      "branch": "main",
+      "changes": [
+        {
+          "agent": "me",
+          "change_id": "PR-52",
+          "collision_points": [],
+          "conflict_points": [],
+          "contested_with": [],
+          "dampened_with": [
+            {
+              "by": "hank PR-49",
+              "corroborated": false,
+              "via_hub": "core/loader.py"
+            }
+          ],
+          "depends_on_changing": [],
+          "head_sha": "7766554433",
+          "impact": [],
+          "impact_count": 0,
+          "is_draft": false,
+          "label": "me PR-52",
+          "merge_conflict_likely": false,
+          "paths": [
+            "assets/model.unity",
+            "core/loader.py"
+          ],
+          "queued_behind": [],
+          "queued_behind_paths": [],
+          "serialize_behind": [],
+          "shared_foundation": [],
+          "unknown_paths": [
+            "assets/model.unity"
+          ],
+          "verdict": "unknown"
+        },
+        {
+          "agent": "hank",
+          "change_id": "PR-49",
+          "head_sha": "h49",
+          "label": "hank PR-49",
+          "paths": [
+            "core/loader.py"
+          ],
+          "verdict": "clear"
+        }
+      ],
+      "clusters": [],
+      "repo": "acme/app"
+    },
+    "kwargs": {
+      "ack": {
+        "label_present": false,
+        "prior_confirmed": true,
+        "prior_hash": null
+      },
+      "added_paths": [],
+      "base_sha": "base3333dddd",
+      "evaluated_at": "2026-07-21T09:15:00Z",
+      "graph_source_sha": "graph3333dddd",
+      "head_matches": true,
+      "policy_version": "detector-2026.07.1",
+      "repository_generation": 3
+    }
+  }
+}

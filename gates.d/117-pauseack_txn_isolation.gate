@@ -1,0 +1,2 @@
+# Veripsa release gate (auto-discovered). register_gate is defined in run_gates.sh.
+register_gate "tests/test_pauseack_txn_isolation.py" "PAUSEACK TXN ISOLATION GATE: PASS" "pause-ack transaction isolation" "an optional least-privilege read failure cannot abort the shared transaction and skip a material pause" "synthetic integration fixture: optional reads are savepoint-contained, a forced permission denial leaves the customer-facing pause active, and the optional advisory fails open without broadening database grants" 40

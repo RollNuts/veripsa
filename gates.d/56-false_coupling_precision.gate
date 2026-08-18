@@ -1,0 +1,4 @@
+# Veripsa release gate (auto-discovered). One gate per file -> two PRs adding gates add two
+# FILES, never a shared line -> no false merge conflict on registration. register_gate is
+# defined in run_gates.sh. Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail]
+register_gate "tests/test_false_coupling_precision.py" "FALSE-COUPLING PRECISION GATE: PASS" "false-coupling precision" "false-coupling precision (multi-definer no-import fan-out dropped; import-confirmed + single-definer couplings kept)" "false-coupling precision (a no-import call to a name with MANY definers must NOT warn unrelated files)" 16

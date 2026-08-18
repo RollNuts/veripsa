@@ -1,0 +1,4 @@
+# Veripsa release gate (auto-discovered). One gate per file -> two PRs adding gates add two
+# FILES, never a shared line -> no false merge conflict on registration. register_gate is
+# defined in run_gates.sh. Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail]
+register_gate "tests/test_app_deploy_resolution.py" "DEPLOY RESOLUTION GATE: PASS" "deploy resolution" "deploy resolution (App resolves with NO credential via pinned installation; moat intact; empty-secret guard)" "deploy resolution (a by-the-book PROD deploy: roles+schema only, NO seat for the App → must still work)" 16

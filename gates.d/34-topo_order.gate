@@ -1,0 +1,4 @@
+# Veripsa release gate (auto-discovered). One gate per file -> two PRs adding gates add two
+# FILES, never a shared line -> no false merge conflict on registration. register_gate is
+# defined in run_gates.sh. Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail]
+register_gate "tests/test_topo_order.py" "TOPO ORDER GATE: PASS" "topological land order" "topological land order (a dependency chain orders upstream-first)" "topological land order (foundational/upstream change first; transitive dependents, not blast count)" 16

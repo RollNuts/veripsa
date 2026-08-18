@@ -1,0 +1,4 @@
+# Veripsa release gate (auto-discovered). One gate per file -> two PRs adding gates add two
+# FILES, never a shared line -> no false merge conflict on registration. register_gate is
+# defined in run_gates.sh. Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail]
+register_gate "tests/test_retention.py" "RETENTION GATE: PASS" "retention" "retention (gated prune erases old 'landed'/'push'; curated records + statements stay immutable; plain DELETE still blocked; account-scoped)" "retention (append-only EXCEPT a gated, account-scoped prune of operational telemetry past the window)" 16

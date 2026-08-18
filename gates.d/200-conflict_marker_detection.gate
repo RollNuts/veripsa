@@ -1,0 +1,2 @@
+# Veripsa release gate (auto-discovered). register_gate is defined in run_gates.sh.
+register_gate "tests/test_conflict_marker_detector.py" "CONFLICT-MARKER DETECTOR GATE: PASS" "content-free conflict-marker detection" "a high-precision marker pair in added diff lines escalates without retaining line bodies" "synthetic offline patches prove new-side-only detection, content-free path line and kind findings, fork-safe escalation, and unchanged behavior for clean patches" 32

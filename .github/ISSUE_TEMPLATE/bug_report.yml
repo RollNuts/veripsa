@@ -1,0 +1,47 @@
+name: Bug report
+description: Report a reproducible Veripsa Core source or offline-evaluator bug
+title: "Bug: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The project-hosted service is suspended. Use this form for source and offline-evaluator bugs.
+
+        Public issues must not contain private repository names or URLs, PR/check/comment URLs, branch names, commit hashes, provider identifiers, delivery identifiers, payloads, source or diff bodies, credentials, tokens, local user paths, or customer data. Use a synthetic reproducer. Report vulnerabilities through SECURITY.md.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: Describe expected and actual behavior using synthetic names and content.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal synthetic reproduction
+      description: Provide a small synthetic fixture or command that contains no private or production values.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Public source version
+      description: A release tag, or "main". Do not paste a private commit hash.
+      placeholder: main
+    validations:
+      required: true
+  - type: textarea
+    id: validation
+    attributes:
+      label: Validation
+      description: List the local checks you ran and their content-free result.
+    validations:
+      required: false
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Public-data check
+      options:
+        - label: This report contains only synthetic or already-public project data and no security-sensitive values.
+          required: true

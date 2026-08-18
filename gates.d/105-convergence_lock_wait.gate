@@ -1,0 +1,4 @@
+# Veripsa release gate (auto-discovered). One gate per file -> two PRs adding gates add two
+# FILES, never a shared line -> no false merge conflict on registration. register_gate is
+# defined in run_gates.sh. Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail]
+register_gate "tests/test_convergence_lock_wait.py" "CONVERGENCE LOCK WAIT GATE: PASS" "convergence lock wait" "convergence lock wait (LIVE event path arms a SHORT convergence wait so a contended per-repo/lifecycle lock DEFERS fast instead of burning the single worker; background sites keep the long wait; contended vs uncontended proven on real Postgres)" "convergence lock wait (the LIVE worker no longer blocks 30s on a contended convergence lock and starves every other lane)" 20

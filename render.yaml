@@ -1,0 +1,269 @@
+# Veripsa GitHub App — example Render Blueprint.
+#
+# The project-hosted service is intentionally suspended as of 2026-08-18. This
+# file is a source-available deployment example, not evidence of a live service.
+#
+# This makes the always-on deploy reproducible + one-command, but DEPLOYING it is the money/external step
+# (a paid Render service + managed Postgres) and stays gated on an explicit go. `render blueprint launch`
+# (or New → Blueprint in the dashboard, pointed at this repo) reads this file.
+#
+# THE MOAT IS PRESERVED ON RENDER: the App connects as the least-privilege role `veripsa_app` (NOT the
+# database owner), so per-tenant FORCE RLS + the gate still wall every tenant. That means VERIPSA_DSN is a
+# SECRET you set by hand to veripsa_app's DSN — it is deliberately NOT auto-wired from the database's
+# connectionString (that string is the OWNER, which would bypass the least-privilege story).
+#
+# FIRST-DEPLOY DB SETUP (before the first deploy — see github-app/RUNBOOK.md):
+#   1. Provision the Postgres below (or bring your own).
+#   2. As the DB owner, apply roles ONCE (creates the migrator + app + agent roles):
+#        psql "$OWNER_DSN" -v ON_ERROR_STOP=1 -f db/roles.sql
+#   3. Give the App its login:  ALTER ROLE veripsa_app LOGIN PASSWORD '<strong>';
+#   4. Set the complete VERIPSA_DSN only in Render's protected secret store.
+#   5. Set OWNER_DSN (secret) = the OWNER/migrator DSN — required to ARM the auto-schema-apply preDeploy step
+#      (the `preDeployCommand` below). If OWNER_DSN is left UNSET, the preDeploy step logs a clear "skipping"
+#      line and exits 0, falling back to the boot-time contract assertion in server.py — but you LOSE the
+#      mechanical guard against the "code shipped without its schema" failure class.
+#
+# GENERATION-GUARDED SCHEMA APPLY (preDeployCommand below, runs BEFORE traffic is routed to the new image):
+#   `bash github-app/scripts/predeploy_schema.sh` compares the deterministic image manifest with the content-free
+#   COMMENT ON SCHEMA core marker under a session advisory lock. Matching and rollback images skip full-schema
+#   DDL; an older live generation runs `psql -v ON_ERROR_STOP=1 -f db/schema.sql` against OWNER_DSN once and
+#   stamps only after success. Malformed state and a reused generation fail closed. Generation 1 alone may adopt
+#   an existing unmarked DB after the read-only runtime schema contract passes via VERIPSA_DSN. See
+#   docs/SCHEMA_GENERATION_MANIFEST.md. Permanent indexes build concurrently and replayed column/sequence DDL is
+#   catalog-short-circuited, so the previous image's writers are not convoyed behind old no-op schema statements.
+#   This replaces a fragile ONE-TIME-DB-SETUP-by-hand pattern that can leave a new runtime serving against an
+#   older schema and make every webhook fail with a missing-function error.
+#
+#   ALWAYS pass `-v ON_ERROR_STOP=1`. Without it, psql SWALLOWS a mid-file error: it keeps running the
+#   remaining statements and EXITS 0, so the deploy reports SUCCESS while the schema is HALF-applied and the App
+#   then boots against it. With it, any error stops the apply and exits non-zero → the deploy fails LOUD. (The
+#   bootstrap + smoke + this gate already use it; predeploy_schema.sh uses it too.)
+#
+#   DESTRUCTIVE migrations (DROP COLUMN, RENAME, retype, NOT-NULL added) still go through the db/migrations/
+#   apply+rollback+post-verify discipline in the RUNBOOK destructive-migration section — NOT through this auto-apply, which
+#   is for the safe-by-construction additive path the schema already lives on.
+
+services:
+  - type: web
+    name: veripsa-app
+    runtime: docker
+    dockerfilePath: ./github-app/Dockerfile
+    dockerContext: .
+    region: oregon                # pin residency EXPLICITLY: the managed Postgres below already lives here, so
+                                   # co-locate the App with it (low DB latency + a documented data-residency answer
+                                   # for buyers). Render defaults to oregon, but pinning makes it intentional, not luck.
+    plan: starter                 # smallest paid tier; the App is low-traffic + ack-fast (a backlog can't block the reply)
+    healthCheckPath: /healthz      # the worker-liveness probe (503 if the background worker ever dies → Render restarts)
+    autoDeploy: false              # deploy on an explicit promote, not on every push to main (control cost + blast radius)
+    numInstances: 1                # 1 is plenty; scaling out is SAFE (per-repo pg_advisory_lock serializes same-repo events)
+    # Render sends the predecessor SIGTERM 60s after the routing switch, then
+    # allows this bounded shutdown window before SIGKILL. deploy-core waits a
+    # fail-closed 95s (60 + 30 + 5s margin) before irreversible ABI cutover so
+    # no generic graph call admitted by the predecessor can commit afterward.
+    maxShutdownDelaySeconds: 30
+    # PRE-DEPLOY SCHEMA APPLY — the mechanical guard for schema/runtime mismatch. Render runs this
+    # command AFTER the build succeeds + BEFORE traffic is routed to the new image; a non-zero exit fails
+    # the deploy and keeps the prior image serving. The script (1) reads OWNER_DSN from the env, (2)
+    # compares the schema generation marker and only when needed runs
+    # `psql "$OWNER_DSN" -X -v ON_ERROR_STOP=1 -f db/schema.sql`; the final schema module stamps
+    # the exact target marker only after all preceding modules succeed. If
+    # OWNER_DSN is unset (first-deploy / not yet wired) the script logs + exits 0, falling back to the
+    # boot-time contract assertion in server.py. See header §GENERATION-GUARDED SCHEMA APPLY + the script for
+    # the full rationale. (`preDeployCommand` is a paid-tier feature — this service is `plan: starter`.)
+    preDeployCommand: "bash github-app/scripts/predeploy_schema.sh"
+    envVars:
+      - key: PORT
+        value: "8000"
+      # HONEST BUILD LABEL — /healthz reports WHICH COMMIT is live, derived automatically (no hand-bumped string
+      # that goes stale the instant you deploy). The App's health_watchdog.build_version() resolves, in order:
+      #   VERIPSA_BUILD_SHA (this env / Dockerfile build arg) -> baked /app/BUILD_SHA file
+      #   -> RENDER_GIT_COMMIT (Render injects the running commit into the RUNTIME env automatically — the
+      #      rebuild-free safety net that needs NO wiring at all) -> legacy VERIPSA_VERSION override -> "dev".
+      # We set VERIPSA_BUILD_SHA from ${RENDER_GIT_COMMIT} here as the explicit primary. NOTE: blueprint `value:`
+      # interpolation of ${RENDER_GIT_COMMIT} is best-effort for a docker-runtime service — if it ever no-ops, the
+      # App falls through to reading RENDER_GIT_COMMIT directly from its runtime env, so /healthz STILL names the
+      # real running commit (it never relies on this one line working). Unresolved everywhere => "dev", never a
+      # stale lie. The Dockerfile also accepts a GIT_SHA build arg + bakes /app/BUILD_SHA as a further fallback.
+      - key: VERIPSA_BUILD_SHA
+        value: ${RENDER_GIT_COMMIT}
+      # Render drains stdout/stderr through pipes. A full/stalled log pipe must
+      # drop records (counted on /healthz), never serialize every event worker.
+      - key: VERIPSA_NONBLOCKING_STDIO
+        value: "1"
+      # The role-aware web container accepts/persists webhook work only. Keep the legacy refresh switch ON:
+      # this image delegates by role, while an old-image rollback (which does not know roles) resumes draining.
+      - key: VERIPSA_DURABLE_INBOX
+        value: "1"
+      - key: VERIPSA_RUNTIME_ROLE
+        value: web
+      - key: VERIPSA_POLICY_REFRESH
+        value: "1"
+      # Repository inventory + open-PR replay uses the App-wide GitHub rate limit and never belongs in the HTTP
+      # process. The role gate enforces this in code; this explicit production fence also disables it on a
+      # predecessor image during rollback.
+      - key: VERIPSA_BOOT_RECONCILE
+        value: "0"
+      # A predecessor image ignores VERIPSA_RUNTIME_ROLE and resumes its
+      # in-process drainer during verified web rollback. Keep its abandoned
+      # claim wall identical to the dedicated-worker fencing contract so a
+      # rollback cannot reintroduce a long stale-claim stall.
+      - key: VERIPSA_POLICY_REFRESH_STALE_SECONDS
+        value: "300"
+      # OPTIONAL legacy MANUAL override — a last-resort human label ONLY (build_version() reads it AFTER all three
+      # DERIVED sources above, so it can never mask a deploy). It does NOT auto-bump and goes stale the instant you
+      # ship new code; do NOT rely on it for "which build is live". Left UNSET on purpose — the derived sha is canon.
+      # ARMS THE GRADED DISK ALERT. The watchdog (health_watchdog.py → alerts.evaluate_db_usage) pages at
+      # 70% / 90% of THIS cap (warn/critical). UNSET/0 = UNCAPPED → that percent-of-cap alert is a SILENT
+      # no-op (it can't measure a fraction of "no ceiling"). The absolute floor alert still fires either way;
+      # this is the graded early-warning that's dark until set. 256 = the basic-256mb Postgres tier below, so
+      # the alert tracks the REAL plan ceiling. Raise this in lockstep if you move to a bigger DB tier.
+      - key: VERIPSA_DB_SIZE_CAP_MB
+        value: "256"
+      # --- secrets: set each in the Render dashboard; NEVER commit. (sync:false = "I'll set it, don't sync from repo") ---
+      - key: VERIPSA_DSN           # the veripsa_app (least-privilege) DSN — see the moat note above, NOT the owner DSN
+        sync: false
+      # OWNER_DSN — the OWNER/migrator DSN, used ONLY by the separate preDeployCommand
+      # (predeploy_schema.sh) to inspect the content-free schema marker and apply db/schema.sql on a generation
+      # upgrade. The image CMD execs the serving process through `env -u OWNER_DSN`, and server.py independently
+      # refuses startup if that boundary is bypassed. Thus the running App's initial environment contains only
+      # VERIPSA_DSN = least-privilege veripsa_app, which cannot DDL and remains behind FORCE RLS. If unset, the
+      # preDeploy step skips with a clear log line + exits 0; the App still boots fine, but the mechanical
+      # guard against schema/code drift is dark. Set this in the Render dashboard alongside VERIPSA_DSN.
+      - key: OWNER_DSN
+        sync: false
+      - key: GH_WEBHOOK_SECRET     # authenticates GitHub→App (HMAC); forgeries are rejected before they enqueue
+        sync: false
+      - key: GH_APP_ID
+        sync: false
+      - key: GH_PRIVATE_KEY        # the App private-key PEM value (server.py accepts a value OR a file path)
+        sync: false
+      - key: GH_INSTALLATION_ID    # optional; the App resolves per-event installations itself, this is a default
+        sync: false
+      # PROACTIVE ALERTING — the "does anyone KNOW it broke?" primitive. A background watchdog samples
+      # /healthz every VERIPSA_WATCHDOG_INTERVAL seconds and POSTs a content-free alert here when the worker
+      # dies, the queue backs up toward its 1000 cap, the failed-event count spikes, or the DB goes unreachable
+      # (the last is the gap Render's own health check never catches — the worker stays up, /healthz stays 200).
+      # An incoming-webhook URL (Slack / Discord / generic). UNSET = degrade to log-only: every alert STILL
+      # prints an `ALERT[...]` line to stdout (greppable; a Render log alert can fire on the `ALERT[` prefix),
+      # so alerting never degrades to nothing — but set this so a real page reaches a human. (secret)
+      - key: VERIPSA_ALERT_WEBHOOK_URL
+        sync: false
+      # --- cost/scale knobs (defaults are TUNED FOR THIS starter/512MiB box; raise on a bigger paid tier) ---
+      # VERIPSA_MAX_INGEST_FILES (12000) · VERIPSA_MAX_TARBALL_BYTES (64MiB) · VERIPSA_BACKFILL_PR_CAP (300)
+      # VERIPSA_MAX_PR_FILES (500) — all documented in github-app/server.py + RUNBOOK. The two memory caps
+      # (files + tarball) default LOW so a mid-size repo can't OOM the 512MiB box; a repo over either is recorded
+      # as an honest 'unknown' (not analyzed), never a crash. Raise both on a ≥2GiB instance.
+      # Latency isolation is also starter-tuned in code: 3 fixed keyed workers, at most 2 active per account,
+      # strict repository FIFO + account-wide lifecycle barriers, and one 90s absolute budget per delivery.
+      # Each GitHub logical call gets at most 30s. Live events only persist graph work; the durable convergence
+      # worker owns one killable extraction at a time with the explicit 180s background ceiling below.
+      # Installation fanout
+      # checkpoints/yields every 4 repos or 20s, with a 20s per-repo work ceiling; DB waits/backoff consume the
+      # same event budget. Ordinary durable replays share one 120s cross-generation execution window and at most
+      # one automatic DLQ re-arm; recovery work is claimed only when a worker actually dequeues it. See RUNBOOK
+      # before changing VERIPSA_EVENT_WORKER_COUNT, VERIPSA_EVENT_PER_ACCOUNT_WORKERS,
+      # VERIPSA_EVENT_WALL_TIMEOUT_SECONDS, VERIPSA_DELIVERY_RETRY_WINDOW_SECONDS, or graph limits.
+
+  # DURABLE POLICY + GRAPH CONVERGENCE. The web service only persists work; this separately-sized foreground
+  # process owns every expensive graph build, preserving webhook latency even when more accounts/repos arrive.
+  - type: worker
+    name: veripsa-convergence
+    runtime: docker
+    dockerfilePath: ./github-app/Dockerfile
+    dockerContext: .
+    # As with the web image CMD, rebuild PID 1's environment without the
+    # preDeploy-only owner credential before any runtime Python is imported.
+    dockerCommand: env -u OWNER_DSN python3 github-app/convergence_worker.py
+    region: oregon
+    plan: starter
+    autoDeploy: false
+    # Two OS processes serve two tenant lanes. The durable DB cap is exactly one active graph turn per account,
+    # so one slow tenant can never consume both convergence workers; each repository coordinate remains serialized.
+    numInstances: 2
+    # SIGTERM stops new claims and lets the current bounded turn finish. A whole-turn watchdog exits at 270s;
+    # the 300s delay therefore remains a real upper bound before exact-epoch stale reclaim.
+    maxShutdownDelaySeconds: 300
+    preDeployCommand: "bash github-app/scripts/predeploy_schema.sh"
+    envVars:
+      - key: VERIPSA_RUNTIME_ROLE
+        value: convergence-worker
+      - key: VERIPSA_POLICY_REFRESH
+        value: "1"
+      - key: VERIPSA_BOOT_RECONCILE
+        value: "1"
+      - key: VERIPSA_BOOT_RECONCILE_DEADLINE_SEC
+        value: "120"
+      - key: VERIPSA_NONBLOCKING_STDIO
+        value: "1"
+      # Background-only extraction wall. A timeout preserves the prior graph and retries the durable coordinate.
+      - key: VERIPSA_GRAPH_EXTRACT_TIMEOUT_SECONDS
+        value: "180"
+      # Best-effort CPU scheduling priority inside the separately-sized worker service.
+      - key: VERIPSA_CONVERGENCE_NICE
+        value: "10"
+      # Background workers have no Render HTTP probe. The extractor-slot bound includes tarball download before
+      # the 180s child wall, so it has 60s staging margin. A separate whole-turn wall also covers routing, DB,
+      # ANALYZE, and post-extraction GitHub calls.
+      - key: VERIPSA_CONVERGENCE_LIVENESS_HARD_SECONDS
+        value: "240"
+      - key: VERIPSA_CONVERGENCE_TURN_HARD_SECONDS
+        value: "270"
+      - key: VERIPSA_CONVERGENCE_LIVENESS_INTERVAL_SECONDS
+        value: "5"
+      # Fresh, exact-commit readiness evidence for every scaled process.
+      - key: VERIPSA_CONVERGENCE_HEARTBEAT_SECONDS
+        value: "30"
+      # A queryable DB is not healthy when the foreground claim/drain path is
+      # failing. Disarm heartbeat immediately and replace a non-recovering PID.
+      - key: VERIPSA_CONVERGENCE_POLL_FAILURE_HARD_SECONDS
+        value: "120"
+      # A monitor-forced replacement must reclaim the abandoned processing row promptly. 300s is exactly the
+      # 270s complete-turn wall plus fencing margin and remains below the stale-work recovery boundary.
+      - key: VERIPSA_POLICY_REFRESH_STALE_SECONDS
+        value: "300"
+      - key: VERIPSA_DSN
+        sync: false
+      - key: OWNER_DSN
+        sync: false
+      - key: GH_APP_ID
+        sync: false
+      - key: GH_PRIVATE_KEY
+        sync: false
+      - key: GH_INSTALLATION_ID
+        sync: false
+
+  # RETENTION SWEEP (the unbounded-ledger guard). core.event is append-only and grows forever (every push +
+  # landing, across all tenants) → on the small 256MiB Postgres it WOULD fill. This scheduled job is the ONE
+  # thing that calls the gated cross-tenant prune (github-app/retention_prune.py → prune_all_accounts_with_
+  # authority) to keep only VERIPSA_RETENTION_DAYS of OPERATIONAL telemetry ('landed'/'push'); the curated
+  # effect records + the statement stream stay immutable. Connects as the SAME least-privilege veripsa_app DSN
+  # (moat unchanged). Without this the ledger is unbounded — a real prod gap on the small tier.
+  - type: cron
+    name: veripsa-retention
+    runtime: docker
+    dockerfilePath: ./github-app/Dockerfile
+    dockerContext: .
+    region: oregon                  # same region as the web service + DB so the nightly prune runs DB-local.
+                                     # (This job prunes the ledger; it does NOT sample DB usage, so no
+                                     # VERIPSA_DB_SIZE_CAP_MB here — that disk alert lives in the web service watchdog.)
+    plan: starter
+    schedule: "17 4 * * *"          # nightly 04:17 UTC (off-peak; idempotent — a missed run just prunes more next time)
+    dockerCommand: python3 github-app/retention_prune.py
+    envVars:
+      - key: VERIPSA_RUNTIME_ROLE
+        value: cron
+      - key: VERIPSA_DSN            # the SAME veripsa_app (least-privilege) secret the web service uses
+        sync: false
+      - key: VERIPSA_RETENTION_DAYS # days of operational telemetry to keep (floor 14 = collisions_on_main window; 30 = data-minimised default)
+        value: "30"
+
+# Optional managed Postgres (or bring your own + skip this block). RLS + content-free rows stay tiny, so the
+# smallest tier is fine to start. Remember: the App still connects as veripsa_app (a secret DSN), not this
+# database's auto-generated owner user.
+databases:
+  - name: veripsa-db
+    plan: basic-256mb
+    postgresMajorVersion: "16"
+    region: oregon                # pin residency EXPLICITLY: the live deploy's Postgres already lives in oregon,
+                                  # so declare it (don't leave residency to a default) — this is the data-residency
+                                  # answer for buyers, and it must match the web service + cron region above.

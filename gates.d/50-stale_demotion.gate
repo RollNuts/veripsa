@@ -1,0 +1,4 @@
+# Veripsa release gate (auto-discovered). One gate per file -> two PRs adding gates add two
+# FILES, never a shared line -> no false merge conflict on registration. register_gate is
+# defined in run_gates.sh. Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail]
+register_gate "tests/test_stale_demotion.py" "STALE DEMOTION GATE: PASS" "freshness-gated demotion" "freshness-gated demotion (the symbol-level drop fires ONLY when the file's graph content-hash == the PR's base content-hash = spans provably valid; a STALE graph keeps file-level serialize = no silent miss; FRESH still drops disjoint = precision; NULL/unknown hash → file-level; content-free)" "freshness-gated demotion (a STALE graph must NOT silently demote a real same-symbol collision to warn; FRESH still drops disjoint; NULL hash → file-level; content-free)" 20

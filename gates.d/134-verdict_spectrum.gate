@@ -1,0 +1,4 @@
+# Veripsa release gate (auto-discovered). One gate per file -> two PRs adding gates add two
+# FILES, never a shared line -> no false merge conflict on registration. register_gate is
+# defined in run_gates.sh. Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail]
+register_gate "tests/test_verdict_spectrum.py" "VERDICT-SPECTRUM GATE: PASS" "verdict spectrum" "verdict-spectrum precedence (serialize>serialize_soft>warn>unknown(ungraphed)>unknown(dampened)>clear; collision-beats-ungraphed; no false-serialize / no false-clear at the verdict layer)" "verdict-spectrum classification on constructed real graphs (every boundary classifies correctly; a real collision is NEVER hidden behind an unknown path; low-value soften never masks a proven same-symbol collision)" 24

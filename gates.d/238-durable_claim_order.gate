@@ -1,0 +1,3 @@
+# Veripsa release gate (auto-discovered). Durable DB receive order is the cross-process authority; the in-memory
+# scheduler only provides fairness and bounded admission.
+register_gate "tests/test_delivery_recovery_backpressure.py" "DELIVERY RECOVERY BACKPRESSURE: PASS" "durable claim order and classified skips" "same-account live/recovery work yields to immutable durable receive order, recovery remains account-fair and bounded, and twenty queued recovery previews start no DB retry window until a worker dequeues them" "Atomic local reservations prevent duplicate enqueue while exact DB claim-at-dequeue prevents memory queue wait from consuming the cross-generation execution window; false claims remain classified as deferred/duplicate/missing." 24 90

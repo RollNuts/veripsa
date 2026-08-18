@@ -1,0 +1,21 @@
+# Veripsa release gate (auto-discovered). One gate per file -> two PRs adding gates add two
+# FILES, never a shared line -> no false merge conflict on registration. register_gate is
+# defined in run_gates.sh. Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail]
+#
+# /freshz + /readyz FRESHNESS-SURFACE ORPHAN/PHANTOM-COORDINATE EXCLUSION lock — the SURFACE mirror of #338's
+# operator-alert exclusion (gate 135 / alerts.evaluate_graph_freshness). graph_freshness.graph_freshness_all
+# feeds the internal aggregation behind /freshz. A (repo, branch) can have a SECOND graph_version under a
+# DEAD/renamed-away account (a
+# backfill/old-account write the per-PR self-heal never re-addresses — the live `de75fe23` orphan), which is
+# BEHIND main HEAD forever while the LIVE coordinate for the SAME (repo, branch) is fresh. Before the fix the
+# surface's consumer counted that orphan, so /freshz reported `any_behind:true` PERPETUALLY even though the live
+# coordinate tracks HEAD — a permanently-red surface that trains the operator to ignore it (then a LATER REAL
+# drift hides in the noise — the same false-page-begets-missed-page lesson in CLAUDE.md). The fix mirrors #338's
+# EXACT (repo, branch) grouping: a behind=True record whose (repo, branch) has a CURRENT (behind=False) sibling
+# is downgraded to behind:false + tagged orphan:true (so behind_count/any_behind and the watchdog exclude it
+# CONSISTENTLY), while a genuinely-behind coordinate with NO fresh sibling STILL reports behind. SURFACE-ONLY:
+# no row is deleted (orphan ROW cleanup is a separate PO-gated op). This PURE gate (no Postgres — graph_freshness_all
+# is fed crafted records via injected db/gh fakes) pins "any_behind=false when the only behind is an orphan with a
+# fresh sibling; genuine drift still reported; surface-only no mutation; content-free; fail-open" so the surface
+# and the alert cannot silently drift apart.
+register_gate "tests/test_freshz_orphan.py" "FRESHZ ORPHAN GATE: PASS" "/freshz orphan/phantom-coordinate exclusion" "/freshz surface orphan-exclusion lock (a behind coordinate with a FRESH live sibling for the same repo+branch is a stale orphan/duplicate -> downgraded to behind:false + tagged orphan:true so any_behind/behind_count exclude it; a genuinely-behind coordinate with no fresh sibling STILL reports behind; per repo+branch; SURFACE-ONLY no row mutation; mirrors #338's alert exclusion; content-free; fail-open)" "ops observability — the /freshz + /readyz freshness surface must report a REAL stale ACTIVE coordinate but NOT a behind-forever orphan/phantom coordinate that has a fresh live sibling (else any_behind:true perpetually -> operator ignores it -> later real drift hidden)" 18

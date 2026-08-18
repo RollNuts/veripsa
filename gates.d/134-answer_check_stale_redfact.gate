@@ -1,0 +1,7 @@
+# Veripsa release gate (auto-discovered). One gate per file -> two PRs adding gates add two
+# FILES, never a shared line -> no false merge conflict on registration. register_gate is
+# defined in run_gates.sh. Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail]
+#
+# Strict regression gate for the resolved close-time answer-check defect. A transient red fact from an older
+# head must not mark a clean final head conflicted, while a PR merged at a failing head must still be observed.
+register_gate "tests/test_answer_check_stale_redfact.py" "ANSWER-CHECK STALE-RED-FACT GATE: PASS" "answer-check stale-red-fact regression" "answer-check stale-red-fact regression (strict: transient-red then fixed then merged-clean records land=clean; merged-while-red still records land=conflicted with observed confidence)" "answer-check outcome grading: final-head evidence prevents phantom conflicts without losing real failing-head recall" 18

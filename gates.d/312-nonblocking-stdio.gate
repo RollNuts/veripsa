@@ -1,0 +1,5 @@
+# Release gate 281.
+register_gate "tests/test_nonblocking_stdio.py" "nonblocking stdio gate: PASS" \
+  "nonblocking-stdio" \
+  "production log pipes cannot stop event workers" \
+  "a saturated stdout/stderr pipe drops one bounded record immediately and increments a content-free health counter; regular files and local terminals remain untouched"

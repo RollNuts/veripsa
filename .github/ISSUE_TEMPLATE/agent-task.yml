@@ -1,0 +1,105 @@
+name: AI agent task
+description: Work order for GitHub-native AI coding agents such as Copilot, Codex, or Claude
+title: "[Agent task] "
+labels: ["agent-task"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this template when an AI coding agent may implement the task.
+        Keep the task small, scoped, and safe to hand to an agent.
+        Do not include secrets/tokens, webhook payloads, GitHub App private keys, installation access tokens, source file bodies, or diff bodies in public issues. Route suspected vulnerabilities through `SECURITY.md`.
+
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal
+      description: What should be true after this task is done?
+      placeholder: "Example: Add onboarding docs for first-time GitHub App installers."
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      description: Files, directories, or behavior the agent may change.
+      placeholder: |
+        Allowed:
+        - docs/**
+        - docs/**
+    validations:
+      required: true
+
+  - type: textarea
+    id: do-not-edit
+    attributes:
+      label: Do not edit
+      description: Files, directories, or systems that must remain untouched.
+      placeholder: |
+        Do not edit:
+        - db/**
+        - github-app/**
+        - auth / billing / permissions / migrations
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Checklist for completion.
+      placeholder: |
+        - [ ] Draft stays published:false
+        - [ ] Public copy keeps content-free boundary precise
+        - [ ] No runtime code changed
+    validations:
+      required: true
+
+  - type: textarea
+    id: validation
+    attributes:
+      label: Validation
+      description: What checks should the agent run or report as not run?
+      placeholder: |
+        - Docs-only: manual link and claim check
+        - Code: run relevant tests / lint / typecheck if available
+    validations:
+      required: true
+
+  - type: textarea
+    id: veripsa
+    attributes:
+      label: Veripsa notes
+      description: How should the agent respond to Veripsa signals?
+      value: |
+        - Keep the diff small and reviewable.
+        - Do not bypass CI, branch protection, or required checks.
+        - The project-hosted Veripsa service is suspended; record its state as not observed.
+        - If another public PR touches the same or related path, coordinate the landing order.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: risk
+    attributes:
+      label: Risk level
+      options:
+        - docs-only / public copy
+        - tests-only
+        - low-risk code
+        - high-risk: auth / billing / permissions / DB / RLS / content-free boundary
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: agent-handoff
+    attributes:
+      label: Agent handoff
+      options:
+        - label: This task is small enough for one PR.
+          required: true
+        - label: The scope and do-not-edit boundaries are explicit.
+          required: true
+        - label: The agent must leave a PR summary, validation notes, and Veripsa state as not observed while the hosted service is suspended.
+          required: true

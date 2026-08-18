@@ -1,0 +1,4 @@
+# Veripsa release gate (auto-discovered). One gate per file -> two PRs adding gates add two
+# FILES, never a shared line -> no false merge conflict on registration. register_gate is
+# defined in run_gates.sh. Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail]
+register_gate "tests/test_content_free_egress.py" "CONTENT-FREE EGRESS GATE: PASS" "content-free egress" "content-free egress (string-literal import specifiers validated as reference tokens; render + alert collapse hostile values to single-line references — no source-body leak)" "content-free egress (no file BODY ever crosses: stored graph / customer text / alert payload carry only path/symbol/line/edge/count metadata; pure, no DB)" 16

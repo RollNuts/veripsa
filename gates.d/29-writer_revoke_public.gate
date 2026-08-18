@@ -1,0 +1,4 @@
+# Veripsa release gate (auto-discovered). One gate per file -> two PRs adding gates add two
+# FILES, never a shared line -> no false merge conflict on registration. register_gate is
+# defined in run_gates.sh. Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail]
+register_gate "tests/test_writer_revoke_public.py" "WRITER REVOKE-PUBLIC GATE: PASS" "writer revoke-PUBLIC" "writer revoke-PUBLIC (every core.*_with_authority SECURITY DEFINER write fn strips the Postgres CREATE-FUNCTION PUBLIC-EXECUTE default and grants only the intended tenant/App role; no granted role over-revoked; the stray-PUBLIC-grant class can't silently reopen on a fresh write fn)" "writer revoke-PUBLIC / stray-PUBLIC-grant guard (every *_with_authority WRITE fn pairs its GRANT with a REVOKE-FROM-PUBLIC; pure-source structural lint, no DB; SECURITY-critical)" 20

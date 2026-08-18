@@ -1,0 +1,4 @@
+# Veripsa release gate (auto-discovered). One gate per file -> two PRs adding gates add two
+# FILES, never a shared line -> no false merge conflict on registration. register_gate is
+# defined in run_gates.sh. Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail]
+register_gate "tests/test_check_details_url.py" "DETAILS-URL GATE: PASS" "details-url builder" "details-url fallback chain (comment anchor -> PR URL -> commit URL) + back-compat for old mocks" "details-url builder (PO #3 — the check's Details link lands on Veripsa's verdict, not a bare commit)" 18

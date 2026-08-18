@@ -1,0 +1,4 @@
+# Veripsa release gate (auto-discovered). One gate per file -> two PRs adding gates add two
+# FILES, never a shared line -> no false merge conflict on registration. register_gate is
+# defined in run_gates.sh. Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail]
+register_gate "tests/test_resolve_rust_crate.py" "RUST-CRATE GATE: PASS" "rust crate import resolve" "Rust crate-path trailing type-name fallback: segs-1 probe (mod-file then flat-file) with unique-match precision guard; super/self relative imports unbroken; single-segment and ambiguous stay unresolved" "Rust crate-prefix import recall: use crate::module::Type strips crate then probes module/mod and module for the containing module file rather than stopping at a miss for the nonexistent Type.rs; precision guard rejects ambiguous hits; does not touch Go/CSharp/PHP branches; workspace sibling crates out of scope" 14

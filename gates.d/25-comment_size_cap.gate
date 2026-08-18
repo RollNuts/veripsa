@@ -1,0 +1,4 @@
+# Veripsa release gate (auto-discovered). One gate per file -> two PRs adding gates add two
+# FILES, never a shared line -> no false merge conflict on registration. register_gate is
+# defined in run_gates.sh. Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail]
+register_gate "tests/test_comment_size_cap.py" "COMMENT-SIZE-CAP GATE: PASS" "comment size cap" "comment size cap (a huge cluster / pathological label/path length can't blow the comment past 65536 → no 422 / no lost comment on the busiest PR; this PR's land-order row stays visible head-or-buried, deterministic + content-free)" "comment size cap (the customer PR comment ALWAYS fits GitHub's 65536-char limit, with this PR's row visible, on a huge contention cluster; pure, no DB)" 20

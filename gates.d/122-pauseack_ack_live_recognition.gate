@@ -1,0 +1,2 @@
+# Veripsa release gate (auto-discovered). register_gate is defined in run_gates.sh.
+register_gate "tests/test_pauseack_ack_live_recognition.py" "PAUSE ACK LIVE RECOGNITION GATE: PASS" "pause-ack replay recognition" "a valid acknowledgement survives check-suite and check-run rerequest replay" "synthetic integration fixture: rerun replay carries current PR labels through the synchronize path, neighbor and no-op events preserve acknowledgement, and a genuinely changed coupling still re-raises action_required" 40

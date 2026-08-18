@@ -1,0 +1,4 @@
+# Veripsa release gate (auto-discovered). One gate per file -> two PRs adding gates add two
+# FILES, never a shared line -> no false merge conflict on registration. register_gate is
+# defined in run_gates.sh. Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail]
+register_gate "tests/test_same_event_reingest_stats.py" "SAME-EVENT REINGEST STATS GATE: PASS" "same-event reingest stats" "same-event reingest stats (a self-heal full re-ingest + main_impact_surface in the SAME body txn ANALYZEs the rewritten graph tables BEFORE the heavy joins via the synchronous core.graph_bulk_loaded flag → bounded sub-second, not the stale-stats nested-loop blow-up the prior reltuples=-1/n_mod_since_analyze guard MISSED → the recurring 600-900s single-worker wedge)" "same-event reingest stats (the FIRST main_impact_surface in the SAME txn as a self-heal re-ingest stays BOUNDED on stale post-reingest stats, not the O(N^2) cold-stats wedge)" 20

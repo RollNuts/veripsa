@@ -1,0 +1,4 @@
+# Veripsa release gate (auto-discovered). One gate per file -> two PRs adding gates add two
+# FILES, never a shared line -> no false merge conflict on registration. register_gate is
+# defined in run_gates.sh. Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail]
+register_gate "tests/test_outcome_results.py" "OUTCOME RESULTS GATE: PASS" "answer-check outcome ledger" "answer-check outcome ledger (ignored→conflicted recorded as a TRUE POSITIVE; followed→clean recorded; CLEARED→conflicted captured as the SILENT MISS / false negative; the confusion matrix + the two headline stats — ignored-advice→conflicted rate and silent-miss count — compute correctly; every prediction/outcome fact content-free, append-only, App-delegation-recorded)" "answer-check / outcome results (Veripsa measures its OWN accuracy: prediction → eventual outcome, records-not-correctness)" 20

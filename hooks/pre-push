@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# Veripsa pre-push hook — the work is about to head out toward main; show the live contention one last time.
+# ADVISORY ONLY (never blocks the push) + FAIL-OPEN. Enable: git config core.hooksPath hooks
+[ -n "${VERIPSA_DSN:-}" ] || exit 0
+ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
+[ -f "$ROOT/watch.py" ] && python3 "$ROOT/watch.py" "$ROOT" 2>/dev/null || true
+exit 0

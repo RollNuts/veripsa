@@ -1,0 +1,4 @@
+# Veripsa release gate (auto-discovered). One gate per file -> two PRs adding gates add two
+# FILES, never a shared line -> no false merge conflict on registration. register_gate is
+# defined in run_gates.sh. Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail]
+register_gate "tests/test_offboarding.py" "OFFBOARDING GATE: PASS" "offboarding / data-rights" "offboarding / data-rights (an exact stable-id repository removal FORGETS the working set + KEEPS only the content-free ledger incl. the answer-check rows; no over-delete of a sibling repo; re-install is clean; a per-account content-free export is derivable; full erasure FORGETS the answer-check ledger BY KIND with no orphan under any coordinate; the neighbour tenant stays untouched + append-only)" "offboarding / data-rights (the FORGET/KEEP contract end to end, incl. the NEW prediction/advice_outcome answer-check ledger: exact-id removal→re-install→export→erase)" 22

@@ -1,0 +1,79 @@
+# Every dependency carries an explicit UPPER bound (not just a floor): a build is then reproducible and a
+# surprise/compromised MAJOR can't silently ship in a rebuild. These ceilings MUST stay in sync with
+# github-app/Dockerfile (the prod image installs the same bounds). Bumping a ceiling is a reviewed change.
+#
+# This file installs the FULL runtime set with `pip install --no-deps -r requirements.txt` — there are NO
+# environment markers (`; extra == "..."`) on any line. A marker like `extra == "multilang"` evaluates True
+# ONLY when pip installs a package that DECLARES that extra (e.g. `pip install foo[multilang]`); for a bare
+# install of this manifest the `extra` variable is undefined, so EVERY marked line is SKIPPED. With
+# no pyproject.toml/setup.py defining those extras (there is none), the markers were unsatisfiable and the
+# documented venv/image install (RUNBOOK §B) installed psycopg2 ONLY — the App then ImportError'd on the first
+# graph ingest (`from tree_sitter import Parser`) and on App-JWT signing (`import jwt`). The Dockerfile already
+# installs all of these unconditionally, so the markers added a broken-runtime trap with no benefit. They are
+# gone: the explicit install now yields the exact set the prod image installs (asserted by the supply-chain gate).
+psycopg2-binary>=2.9,<2.10
+# Multi-language code graph: Python is parsed with the stdlib `ast` (no dep); other languages are parsed
+# with tree-sitter. Each grammar loads independently; any absent/version-incompatible one is skipped (the
+# extractor degrades to fewer languages, never fatal — and unsupported source still gets direct-collision
+# protection). Add a language = one grammar here + one entry in code_graph_extract._GENERIC_SPEC.
+#
+# tree-sitter CORE: pinned exactly to 0.23.2 ON PURPOSE — it is the LOAD-BEARING pin of the ABI scheme. The
+# 0.23.x runtime speaks language-ABI v14 (accepts grammars v13–14); 0.24+ speaks ABI v15 and raises the minimum,
+# which would silently DROP the deliberately-old grammar pins below (rust/c/cpp/swift/kotlin are held at v14
+# versions). Without this exact pin a fresh install could resolve the core to a future major and shrink
+# language coverage with no error. The resilient loader (_cg_languages._ts_languages) prevents a CRASH on a
+# mismatch; this pin prevents a SILENT coverage loss. Bump core + grammar pins together as one reviewed step.
+# Install this manifest with `pip install --no-deps -r requirements.txt`: every transitive runtime dependency
+# is listed below, and bypassing package metadata is required because language-pack 0.9.1 over-constrains the
+# external C# wheel even though Veripsa uses its bundled Dart grammar. The supply-chain gate locks this command.
+tree-sitter==0.23.2
+tree-sitter-javascript>=0.23,<0.24
+tree-sitter-typescript>=0.23,<0.24
+tree-sitter-go>=0.23,<0.24
+tree-sitter-java>=0.23,<0.24
+tree-sitter-ruby>=0.23,<0.24
+# php / c# / html field-specs are DONE (grammar-verified: php class/interface/trait/enum + namespace_use;
+# c# class/interface/struct/record + using; html script/link refs). Roadmap remaining: rust field-specs.
+# `cryptography` (single entry below, with pyjwt) is used by BOTH the live App-JWT RS256 signing (server.py)
+# and the optional signed audit export (export_audit.py — Ed25519; if cryptography is absent it falls back to
+# RSA via the `openssl` CLI, then to sha256-only tamper-detection). One pin serves both; same floor/ceiling.
+tree-sitter-php>=0.23,<0.24
+# PyPI's 0.23.1 Linux x86_64 wheel is ABI v15 and is rejected by tree-sitter 0.23.2. The 0.21.3 wheel is ABI
+# v14 on Linux and macOS. language-pack imports it successfully; `--no-deps` bypasses only the pack's overly
+# broad `>=0.23.1` metadata while its bundled Dart grammar remains available.
+tree-sitter-c-sharp==0.21.3
+tree-sitter-html>=0.23,<0.24
+tree-sitter-rust>=0.21,<0.22  # core-compatible (v14)
+# C/C++ (kernels, embedded, systems code). The C++ grammar is a superset that also parses C, so .c/.h fall
+# back to it when the C grammar's ABI is too new for the installed core (build_graph routes c↔cpp).
+tree-sitter-cpp>=0.22,<0.23
+tree-sitter-c>=0.21,<0.22   # core-compatible ABI; cpp covers .c if this one is skipped
+# Android (Kotlin) + iOS (Swift) coverage. Grammar v1.0.x/0.0.x are core-compatible (language ABI v14);
+# v1.1+/v0.7+ use ABI v15 which requires tree-sitter>=0.24 — the resilient loader drops them automatically.
+tree-sitter-kotlin>=1.0.0,<1.1  # core-compatible (v14); >=1.1 is ABI v15 (skipped)
+tree-sitter-swift>=0.0.1,<0.7   # core-compatible (v14); >=0.7 is ABI v15 (skipped)
+# Svelte SFC: grammar locates the <script> block; JS/TS extraction delegates to the TypeScript parser.
+# 1.0.2 is ABI v14 (verified: loads with tree-sitter 0.23.x core — Parser(lang) succeeds).
+# Vue SFC: no pip wheel exists for a Vue grammar; extraction uses a regex to pull the script block
+# and then parses it with the existing TypeScript parser (no additional grammar dep needed).
+tree-sitter-svelte>=1.0.2,<1.1  # core-compatible (v14); 1.0.2 is the only published version
+# Elixir: bespoke extractor (defmodule/def/defp/defmacro/defmacrop are call nodes, not distinct
+# types). 0.3.x is ABI v14 (verified: loads with tree-sitter 0.23.x core).
+tree-sitter-elixir>=0.3.0,<0.4
+# Dart (Flutter): language-pack 0.9.1 bundles the ABI-v14 Dart grammar. Its three runtime imports are explicit
+# here because installs use --no-deps. 0.10.0+ requires tree-sitter>=0.25 (ABI v15).
+tree-sitter-language-pack==0.9.1
+tree-sitter-embedded-template==0.23.2
+tree-sitter-yaml==0.7.0
+# Kubernetes manifests need a semantic YAML loader. tree-sitter-yaml above is a grammar
+# dependency; it does not provide the `yaml.safe_load_all` API used by _cg_iac.
+PyYAML>=6.0.2,<7
+# The live GitHub App (github-app/server.py) signs its App JWT with RS256 (and export_audit.py uses
+# cryptography for signed exports). See github-app/RUNBOOK.md.
+# pyjwt floor is 2.8 (well past CVE-2022-29217 alg-confusion, fixed in 2.4.0); <3 keeps the 2.x API.
+# cryptography floor 42 is past the OpenSSL-3.x advisories bundled by older wheels; <46 matches the image.
+pyjwt>=2.8,<3
+typing-extensions>=4,<5
+cryptography>=42,<46
+cffi>=1.17,<3
+pycparser>=2.22,<3

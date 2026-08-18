@@ -1,0 +1,4 @@
+# Veripsa release gate (auto-discovered). One gate per file -> two PRs adding gates add two
+# FILES, never a shared line -> no false merge conflict on registration. register_gate is
+# defined in run_gates.sh. Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail]
+register_gate "tests/test_notify_holder.py" "NOTIFY-HOLDER GATE: PASS" "notify the lane holder" "notify the lane holder (main_impact_surface exposes queued_behind/queued_behind_paths = the inverse of serialize_behind; the holder's rendered PR comment states how many / which in-flight PRs wait behind it + on which lanes, capped + content-free + advisory; a PR with nobody behind it shows no such line)" "notify the lane HOLDER (the inverse of 'wait in line': a holder learns who is queued behind it; a PR with nobody behind it stays quiet; content-free)" 20

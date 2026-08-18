@@ -1,0 +1,25 @@
+{
+  "name": "Veripsa",
+  "url": "https://example.invalid/veripsa",
+  "description": "Traffic control for AI coding agents. Before merge, surfaces which in-flight PRs may structurally collide on main and who should wait or revise. Advisory, content-free (no source bodies stored or displayed), and does not assert correctness.",
+  "public": false,
+  "hook_attributes": {
+    "url": "https://example.invalid/veripsa/webhook",
+    "active": false
+  },
+  "default_permissions": {
+    "contents": "read",
+    "pull_requests": "write",
+    "checks": "write",
+    "merge_queues": "read",
+    "metadata": "read"
+  },
+  "default_events": [
+    "pull_request",
+    "push",
+    "repository",
+    "check_suite",
+    "check_run",
+    "merge_group"
+  ]
+}

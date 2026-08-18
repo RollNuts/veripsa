@@ -1,0 +1,4 @@
+# Veripsa release gate (auto-discovered). One gate per file -> two PRs adding gates add two
+# FILES, never a shared line -> no false merge conflict on registration. register_gate is
+# defined in run_gates.sh. Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail]
+register_gate "tests/test_webhook_ordering.py" "WEBHOOK ORDERING GATE: PASS" "webhook ordering" "webhook ordering (merge-before-open + late retry + push-before-install + removed-repo + out-of-order pushes + push↔PR reconcile all stay causally consistent)" "webhook ordering / causality (GitHub does NOT guarantee delivery ORDER: events OUT OF ORDER / late / with gaps keep state consistent — no resurrected merged PR, no removed-repo working-set resurrection, no graph regressing to an older commit, content-free)" 16

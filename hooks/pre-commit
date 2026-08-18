@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Veripsa pre-commit hook — declare-before-land, automatically. Registers what THIS agent is editing and
+# prints what's heading to main (the live contention) on every commit. ADVISORY ONLY: it NEVER blocks the
+# commit (warn, don't hostage), and it's FAIL-OPEN — if Veripsa/DB isn't configured, it does nothing.
+# Enable once (committed, reproducible):  git config core.hooksPath hooks
+[ -n "${VERIPSA_DSN:-}" ] || exit 0
+ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
+[ -f "$ROOT/watch.py" ] && python3 "$ROOT/watch.py" "$ROOT" 2>/dev/null || true
+exit 0

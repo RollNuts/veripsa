@@ -1,0 +1,15 @@
+# Veripsa release gate (auto-discovered). One gate per file -> two PRs adding gates add two
+# FILES, never a shared line -> no false merge conflict on registration. register_gate is
+# defined in run_gates.sh. Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail]
+#
+# CORE-PERF FREE-TIER lock — pins the two Render-free-tier perf fixes that target the customer-latency
+# hot path WITHOUT changing engine semantics or moat invariants:
+#   (1) _pr_pre_brain runs gh.base_blob_shas + gh.compare_changed_paths IN PARALLEL (independent GETs;
+#       overlap their network wait). Cuts ~200-500ms per PR analyze. Kill-switch VERIPSA_PR_PREBRAIN_
+#       PARALLEL=0 reverts to serial; same values out either way (gate proves it).
+#   (2) /healthz freshness/depth are memory-only last-good reads. Cold/expired values start one fixed
+#       single-flight daemon per source and the probe returns immediately, even while DB/store I/O is blocked.
+# The gate runs OFFLINE (no Postgres, no GitHub account); it drives _pr_pre_brain with a Fake gh whose
+# two reads each sleep ~150ms and asserts wall-clock < 0.25s (serial would be ≥ 0.30s), and exercises
+# the /healthz cache via make_handler with counting and deliberately blocked DB/store stubs.
+register_gate "tests/test_core_perf_free_tier.py" "CORE-PERF FREE-TIER GATE: PASS" "core perf — free-tier quick wins" "core perf free-tier quick wins (PR pre-brain overlaps independent GitHub reads; /healthz advisory freshness/depth return from memory in under 200ms on a cold cache while one bounded background sampler per source is deliberately blocked, then publish last-good values after recovery)" "core perf within the free tier (the customer-latency hot path stays sub-second and the platform liveness probe cannot inherit DB/kernel latency, without changing engine semantics or durability)" 30

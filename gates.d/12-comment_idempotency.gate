@@ -1,0 +1,4 @@
+# Veripsa release gate (auto-discovered). One gate per file -> two PRs adding gates add two
+# FILES, never a shared line -> no false merge conflict on registration. register_gate is
+# defined in run_gates.sh. Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail]
+register_gate "tests/test_comment_idempotency.py" "COMMENT IDEMPOTENCY GATE: PASS" "comment idempotency" "comment idempotency (exactly ONE comment per PR upserted in place, no check-flap, stale warns cleared on resolve, clean PRs stay comment-free)" "comment idempotency / anti-spam (the customer-facing check+comment under CHURN: sync/force-push/redeliver storms)" 16

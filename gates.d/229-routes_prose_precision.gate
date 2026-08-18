@@ -1,0 +1,4 @@
+# Veripsa release gate (auto-discovered). One gate per file -> two PRs adding gates add two
+# FILES, never a shared line -> no false merge conflict on registration. register_gate is
+# defined in run_gates.sh. Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail]
+register_gate "tests/test_routes_prose_precision.py" "ROUTES PROSE PRECISION GATE: PASS" "routes prose precision" "Python route extraction ignores docstring/comment route examples while preserving real decorators and APIRouter prefix joins; cross-repo route:: keys stay content-free and do not mint prose/example contracts" "cross-tier ROUTE extractor precision: dogfood cross-repo shadow found _cg_routes.py's own docstring/comment examples minted clean route:: keys. This gate proves Python comments and triple-quoted prose are blanked before route-definition regexes, real decorators and APIRouter prefix joins still emit, and graph output does not leak prose bodies." 12

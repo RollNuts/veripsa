@@ -1,0 +1,16 @@
+# Veripsa release gate (auto-discovered). One gate per file -> two PRs adding gates add two
+# FILES, never a shared line -> no false merge conflict on registration. register_gate is
+# defined in run_gates.sh. Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail]
+#
+# GRAPH-STALE ORPHAN/PHANTOM-COORDINATE EXCLUSION lock. The operator `graph_stale` alert
+# (alerts.evaluate_graph_freshness) must page on a REAL behind coordinate but stay QUIET on an ORPHAN: a
+# (repo, branch) that has an ABANDONED graph_version (a backfill/old-account write the webhook never
+# re-addresses, or a renamed-away coordinate) is BEHIND main HEAD forever while the LIVE coordinate for the
+# SAME (repo, branch) is fresh/current and predictions run on it. The old eval flooded `graph_stale` on the
+# orphan every interval -> the operator MUTES it -> a LATER REAL drift on another repo is then silently missed
+# (a false page begets a missed page — the perpetual orphan `graph_stale` lesson in CLAUDE.md). The fix
+# excludes a behind coordinate whose (repo, branch) has a CURRENT sibling (surgical, per repo+branch,
+# content-free) while a genuinely-behind coordinate with NO fresh sibling STILL pages. This PURE gate (no
+# Postgres) pins that "fires on real drift, quiet on an orphan with a fresh live sibling" boundary so it
+# cannot silently drift back to a false-positive flood.
+register_gate "tests/test_graph_stale_orphan_exclusion.py" "GRAPH-STALE ORPHAN-EXCLUSION GATE: PASS" "graph_stale orphan/phantom-coordinate exclusion" "graph_stale orphan-exclusion lock (a behind coordinate with a FRESH live sibling for the same repo+branch is a stale orphan/duplicate, not live drift, and does NOT page; a genuinely-behind coordinate with no fresh sibling STILL pages; per repo+branch; content-free; fail-open)" "ops alerting / observability — graph_stale must page on a REAL stale ACTIVE coordinate but stay QUIET on an orphan/phantom coordinate that is behind-forever (un-actionable flood -> mute -> later real drift missed)" 18

@@ -1,0 +1,4 @@
+# Veripsa release gate (auto-discovered). One gate per file -> two PRs adding gates add two
+# FILES, never a shared line -> no false merge conflict on registration. register_gate is
+# defined in run_gates.sh. Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail] [timeout]
+register_gate "tests/test_perf_budget.py" "PERF BUDGET GATE: PASS" "perf budget" "perf budget (main_impact_surface keeps its structural materialization locks; the 3k-file synthetic brain path stays under 6s and below 6x growth from 10 to 200 in-flight PRs)" "perf budget (bounded PR-count scaling only; the separate 9k dampened-resource gate owns large graph behavior, avoiding duplicate giant seeds)" 30 240

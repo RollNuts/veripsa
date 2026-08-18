@@ -1,0 +1,34 @@
+__pycache__/
+*.py[cod]
+.DS_Store
+*.log
+.venv/
+venv/
+# Environment files may contain credentials. Keep only inert templates.
+.env
+.env.*
+.envrc
+.envrc.*
+!.env.example
+!.env.*.example
+!.envrc.example
+!.envrc.*.example
+# never commit infra state / secrets
+*.tfstate
+*.tfstate.backup
+.terraform/
+*.auto.tfvars
+*.pem
+*.key
+*.p8
+*.p12
+*.pfx
+*.pkcs12
+*.jks
+*.keystore
+*.ppk
+*.kdbx
+id_rsa
+id_dsa
+id_ecdsa
+id_ed25519

@@ -1,0 +1,4 @@
+register_gate "tests/test_alert_dispatch_liveness.py" "alert dispatch liveness gate: PASS" \
+  "alert-dispatch-liveness" \
+  "a stuck alert webhook cannot stop or multiply event workers" \
+  "real outbound alert posting runs on one fixed daemon with a bounded queue; saturation drops immediately while stdout and the durable alert board remain authoritative"

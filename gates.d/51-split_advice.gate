@@ -1,0 +1,4 @@
+# Veripsa release gate (auto-discovered). One gate per file -> two PRs adding gates add two
+# FILES, never a shared line -> no false merge conflict on registration. register_gate is
+# defined in run_gates.sh. Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail]
+register_gate "tests/test_split_advice.py" "SPLIT-ADVICE GATE: PASS" "split advice" "split advice (a touched chronic contention file gets a proactive 'consider splitting' recommendation; relevance-gated = no wallpaper; advisory = never flips the check; content-free = a hostile path can't leak a body)" "split advice (Veripsa PROACTIVELY recommends splitting a load-bearing, frequently-moving file the PR touches — fan-in×churn, advisory, content-free)" 20

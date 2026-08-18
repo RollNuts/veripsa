@@ -1,0 +1,4 @@
+# Veripsa release gate (auto-discovered). One gate per file -> two PRs adding gates add two
+# FILES, never a shared line -> no false merge conflict on registration. register_gate is
+# defined in run_gates.sh. Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail]
+register_gate "tests/test_refresh_fanout_budget.py" "REFRESH FANOUT BUDGET GATE: PASS" "refresh fanout budget" "refresh fanout budget (the customer-latency neighbor-refresh fan-out webhook._refresh_changes stays sub-second + near-linear as in-flight PR count grows: ~56ms at K=200, ~flat per-PR; and does NO per-neighbor DB read — the brain/co-change reads stay ONCE per acting event, not O(K) round-trips)" "refresh fanout budget (a push-to-main / merge re-renders EVERY in-flight PR's check inside the worker txn; this LOCKS that fan-out bounded so events can't back up = stale verdicts)" 16

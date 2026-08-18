@@ -1,0 +1,20 @@
+# Veripsa release gate (auto-discovered). One gate per file -> two PRs adding gates add two
+# FILES, never a shared line -> no false merge conflict on registration. register_gate is
+# defined in run_gates.sh. Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail]
+#
+# DEFAULT-BRANCH-CHANGE ORPHAN exclusion lock. Veripsa ingests a repo's DEFAULT branch, so the graph
+# coordinate is (account_id, repo, default_branch). When a repo's default MOVES (main -> master) there is NO
+# repository.edited default_branch handler (it falls to noop), the next push ingests a fresh (..., master)
+# coordinate, and the OLD (..., main) coordinate FREEZES -> behind main HEAD FOREVER. The pre-existing
+# (repo,branch)-sibling orphan rule CANNOT save it (the fresh sibling is at the DIFFERENT (repo, master) key),
+# so graph_stale paged PERPETUALLY on the orphaned `main` (un-actionable flood -> mute -> later real drift
+# missed -- the perpetual-orphan graph_stale lesson in CLAUDE.md). The fix (Option B, no DDL, auto-healing):
+# repo_default_branch_head already resolves the LIVE default branch; each freshness record carries `live_default`,
+# and a behind record CONFIRMED on a NON-current default branch is downgraded behind:false + tagged orphan:true
+# on the SURFACE (graph_freshness.graph_freshness_all) and EXCLUDED from the page (alerts.evaluate_graph_freshness)
+# -- the two mirror each other so /freshz and the operator alert agree. This PURE gate (no Postgres -- the db/gh
+# seams + the alert poster are fakes) SIMULATES the change end-to-end: ingest at branch=main, then move the repo's
+# default to master + ingest at master, and asserts graph_stale behind_count==0 afterward (the orphaned `main` is
+# excluded, the live `master` is fresh) while a genuine drift on the LIVE default branch STILL pages. Pins
+# "auto-heals any default-branch change; never over-silences a live-default drift; content-free; fail-open".
+register_gate "tests/test_default_branch_orphan.py" "DEFAULT-BRANCH-ORPHAN GATE: PASS" "default-branch-change orphan exclusion" "default-branch-change orphan exclusion lock (a default-branch move main->master freezes the old-branch coordinate behind-forever; the freshness surface + graph_stale alert exclude a behind coordinate CONFIRMED on a non-current default branch via the live default branch repo_default_branch_head already resolves -> graph_stale behind_count==0 after the move, while a genuine drift on the LIVE default branch STILL pages; auto-heals any future move with no DDL/data migration; surface==alert; content-free; fail-open)" "ops alerting / observability -- a default-branch change (main->master) must NOT page graph_stale forever on the orphaned old-branch coordinate (un-actionable flood -> mute -> later real drift missed); the live default-branch coordinate is fresh and drift on it still pages" 18

@@ -1,0 +1,3 @@
+# Public installation metadata is a short, throttled side observation.  It
+# must never hold one shared account row across a long repository body.
+register_gate "tests/test_installation_metadata_lock_scope.py" "INSTALLATION METADATA LOCK SCOPE GATE: PASS" "installation metadata lock scope" "installation metadata lock scope (real Postgres reproduces the old same-account cross-repository lock-timeout convoy, then proves the production helper commits the shared metadata row before event-body work and unchanged observations avoid physical updates)" "installation metadata lock scope (same-account repositories no longer serialize their long event bodies through one installation metadata row)" 20

@@ -1,0 +1,4 @@
+# Veripsa release gate (auto-discovered). One gate per file -> two PRs adding gates add two
+# FILES, never a shared line -> no false merge conflict on registration. register_gate is
+# defined in run_gates.sh. Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail]
+register_gate "tests/test_cross_tier_route_probe.py" "CROSS-TIER ROUTE PROBE GATE: PASS" "cross-tier route probe" "cross-tier route↔call probe (MEASURE-FIRST: backend route-def strings ↔ frontend request urls matched template-aware; specificity floor drops ubiquitous bare routes so /health/login don't couple everything; content-free path strings only)" "cross-tier API contract probe (backend route DEFINITION ↔ frontend request URL = the .py↔.ts / .go↔.svelte coupling a single-language graph is blind to; ubiquitous-route specificity floor proven to remove false fan-out)" 18

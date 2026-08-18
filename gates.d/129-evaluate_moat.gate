@@ -1,0 +1,4 @@
+# Veripsa release gate (auto-discovered). One gate per file -> two PRs adding gates add two
+# FILES, never a shared line -> no false merge conflict on registration. register_gate is
+# defined in run_gates.sh. Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail]
+register_gate "tests/test_evaluate_moat.py" "EVALUATE-MOAT GATE: PASS" "evaluate moat" "evaluate moat (report emits only the lift multiplier, not raw coupled+random rates that expose the scoring formula)" "evaluate moat: the pre-sales report must emit only the final multiplier, not the raw co-change rates, so the lift formula cannot be recovered from a shared report" 16

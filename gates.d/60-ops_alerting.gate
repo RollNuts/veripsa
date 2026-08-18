@@ -1,0 +1,4 @@
+# Veripsa release gate (auto-discovered). One gate per file -> two PRs adding gates add two
+# FILES, never a shared line -> no false merge conflict on registration. register_gate is
+# defined in run_gates.sh. Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail]
+register_gate "tests/test_ops_alerting.py" "OPS-ALERTING GATE: PASS" "ops readiness" "ops readiness (alerting fires/resolves edge-triggered + fail-open + content-free; durable rows export→fresh-DB restore round-trips; DR export host-only)" "ops readiness (PROACTIVE ALERTING on worker-death/backlog/failed-spike/db-down + DR export→restore round-trip)" 20

@@ -1,0 +1,4 @@
+# Veripsa release gate (auto-discovered). One gate per file -> two PRs adding gates add two
+# FILES, never a shared line -> no false merge conflict on registration. register_gate is
+# defined in run_gates.sh. Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail]
+register_gate "tests/test_tamper_immutability.py" "TAMPER IMMUTABILITY GATE: PASS" "tamper immutability" "tamper immutability (BEFORE TRUNCATE guard closes the statement-level wipe the row triggers skip — refused for tenant AND owner; plain DELETE/UPDATE still blocked; exception tokens are account-pinned so a token for X can't erase Y; the 3 sanctioned gate erases — demo/retention/account-erasure — still work)" "tamper immutability (the ledger cannot be ERASED/rewritten by ANY path except the 3 named account-pinned gate erases; TRUNCATE-proof; SECURITY-critical)" 20

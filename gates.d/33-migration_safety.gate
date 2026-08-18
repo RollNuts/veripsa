@@ -1,0 +1,4 @@
+# Veripsa release gate (auto-discovered). One gate per file -> two PRs adding gates add two
+# FILES, never a shared line -> no false merge conflict on registration. register_gate is
+# defined in run_gates.sh. Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail]
+register_gate "tests/test_migration_safety.py" "MIGRATION SAFETY GATE: PASS" "migration safety" "migration safety (re-apply schema.sql over seeded live-like data → no error + ALL rows survive byte-for-byte + idempotent x3; the guarded claim-PK re-key fires losslessly on the old shape; static scan finds no unguarded CREATE/ADD-COLUMN-NOT-NULL/DROP)" "migration safety (a PROD REDEPLOY re-applies db/schema.sql over EXISTING populated data: lossless + idempotent)" 20

@@ -1,0 +1,4 @@
+# Veripsa release gate (auto-discovered). One gate per file -> two PRs adding gates add two
+# FILES, never a shared line -> no false merge conflict on registration. register_gate is
+# defined in run_gates.sh. Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail]
+register_gate "tests/test_server.py" "SERVER GATE: PASS" "webhook server" "webhook server (full pull_request + push loop, faked GitHub I/O over the real gate)" "webhook server (the live App loop, offline: webhook → brain → check+comment + push→ingest + HMAC)" 16

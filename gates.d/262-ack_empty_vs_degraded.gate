@@ -1,0 +1,2 @@
+# Veripsa release gate (auto-discovered). register_gate is defined in run_gates.sh.
+register_gate "tests/test_ack_empty_vs_degraded.py" "ACK EMPTY VS DEGRADED GATE: PASS" "ack empty-versus-degraded" "an empty coupling result from a degraded graph cannot be treated as an acknowledged clear" "synthetic offline fixture: degraded empty results remain unconfirmable with the label and prior marker preserved, healthy empty results retain neighbor safety, proven matches clear, and proven changes re-pause" 24

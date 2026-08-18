@@ -1,0 +1,4 @@
+# Veripsa release gate (auto-discovered). One gate per file -> two PRs adding gates add two
+# FILES, never a shared line -> no false merge conflict on registration. register_gate is
+# defined in run_gates.sh. Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail]
+register_gate "tests/test_tamper_grants.py" "TAMPER GRANTS GATE: PASS" "tamper grants" "tamper grants (every core table × every tenant role × INSERT/UPDATE/DELETE/TRUNCATE: a tenant arms ALL forgery+bypass tokens ITSELF to defeat the trigger, yet the direct write is STILL refused by the absent table grant — the un-forgeable record holds; catalog proves ZERO write priv per tenant role; legit gate path still works)" "tamper grants / FORGERY-BARRIER (a token-armed tenant must STILL be refused by the missing table grant; SECURITY-critical)" 20

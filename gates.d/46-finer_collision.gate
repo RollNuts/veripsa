@@ -1,0 +1,4 @@
+# Veripsa release gate (auto-discovered). One gate per file -> two PRs adding gates add two
+# FILES, never a shared line -> no false merge conflict on registration. register_gate is
+# defined in run_gates.sh. Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail]
+register_gate "tests/test_finer_collision.py" "FINER COLLISION GATE: PASS" "finer collision" "finer collision (FILE→SYMBOL from line metadata only; disjoint symbols drop the false wait; un-mappable falls back to file-level = recall preserved; diff body never stored/rendered)" "finer (symbol-level) collision (DIFFERENT symbols don't serialize; SAME symbol does + names it; top-level/no-span FALLS BACK to file-level; content-free)" 20

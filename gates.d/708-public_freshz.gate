@@ -1,0 +1,2 @@
+# Veripsa release gate (auto-discovered). Locks the unauthenticated /freshz privacy boundary.
+register_gate "tests/test_public_freshz.py" "PUBLIC FRESHZ GATE: PASS" "public freshz" "public /freshz boundary (aggregate freshness only; cross-tenant coordinates stay internal)" "public /freshz preserves sampled/behind aggregate state without repo, branch, account, commit, graph-count, source, or diff metadata" 20

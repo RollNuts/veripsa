@@ -1,0 +1,4 @@
+# Veripsa release gate (auto-discovered). One gate per file -> two PRs adding gates add two
+# FILES, never a shared line -> no false merge conflict on registration. register_gate is
+# defined in run_gates.sh. Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail]
+register_gate "tests/test_external_resilience.py" "EXTERNAL RESILIENCE GATE: PASS" "external resilience" "external resilience (a partial/corrupt tarball download is REFUSED not silently ingested as a short graph; a null/object/truncated GitHub JSON body fails-clean; a connection-drop MID per-event txn rolls back the WHOLE event — no partial claim/graph survives — and the redelivery lands idempotently from the clean baseline)" "external resilience (a flaky GitHub / a DB blip must NEVER crash, partial-write, or silently corrupt)" 20

@@ -1,0 +1,5 @@
+# shellcheck shell=bash
+register_gate "tests/test_installation_generation_preflight.py" "INSTALLATION GENERATION PREFLIGHT GATE: PASS" \
+  "installation generation preflight" \
+  "App-JWT lifecycle point reads decide stale activation/deletion before tenant admission or any DB/advisory lock" \
+  "Absent, mismatched, suspended, replacement-current, same-current, authoritative-404, and transient-error paths are fail-closed and retry-safe." 18 30

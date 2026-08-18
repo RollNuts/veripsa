@@ -1,0 +1,3 @@
+# Veripsa release gate. Repository deletion/deselection needs a durable delivery row even when ordinary
+# webhook persistence is disabled; GitHub does not automatically redeliver failed webhook deliveries.
+register_gate "tests/test_durable_offboarding_kill_switch.py" "DURABLE OFFBOARDING KILL SWITCH: PASS" "durable offboarding kill switch" "durable offboarding kill switch (the composition root always wires the authority store, keyed processor, recovery loop, and watchdog while VERIPSA_DURABLE_INBOX=0 keeps only ordinary ingress memory-only)" "durable offboarding kill switch (prevents repository delete/deselection from being accepted without stable-id and receive-order authority while retaining the emergency ordinary-event bypass)" 24

@@ -1,0 +1,16 @@
+version: 2
+# Hosted processing is suspended. Keep vulnerability alerts and automated security
+# fixes enabled at the repository level, but do not open routine version-update PRs
+# until a maintainer deliberately resumes dependency maintenance.
+updates:
+  - package-ecosystem: pip
+    directory: /
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 0
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 0

@@ -1,0 +1,2 @@
+# Veripsa release gate (auto-discovered). One gate per file. register_gate is defined in run_gates.sh.
+register_gate "tests/test_schema_contract_cutover.py" "SCHEMA CONTRACT CUTOVER GATE: PASS" "readiness-gated production schema contract cutover" "the one-off finalizer requires exact target=Render=baked artifact identity before manifest or database access and never logs its unique token or owner credential" "missing/mismatched build provenance cannot execute the production-only legacy claim and graph-writer fence" 3

@@ -1,0 +1,4 @@
+# Veripsa release gate (auto-discovered). One gate per file -> two PRs adding gates add two FILES, never a
+# shared line -> no false merge conflict on registration. register_gate is defined in run_gates.sh.
+# Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail]
+register_gate "tests/test_event_budget_db.py" "event budget DB gate: PASS" "the webhook delivery deadline caps every live Postgres blocking seam" "EVENT BUDGET DB: connect_timeout, advisory-lock wait, session statement_timeout, and every body query are capped to the current delivery's remaining monotonic budget; an expired delivery cannot begin another SQL statement." "event budget DB: DB connect, lock, and late SQL cannot outlive the single delivery wall-clock ceiling" 20

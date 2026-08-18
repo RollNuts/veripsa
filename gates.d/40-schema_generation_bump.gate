@@ -1,0 +1,4 @@
+# Veripsa release gate (auto-discovered). One gate per file -> two PRs adding gates add two
+# FILES, never a shared line -> no false merge conflict on registration. register_gate is
+# defined in run_gates.sh. Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail]
+register_gate "tests/test_schema_generation_bump_gate.py" "SCHEMA-GENERATION BUMP GATE: PASS" "schema-generation-bump" "schema-generation-bump (a PR that changes the db/schema manifest digest vs its base without increasing db/schema_generation fails LOUD at PR time, using the same build_manifest the deploy guard uses -- so a schema change and its generation bump can never land as separate PRs and hit fail_same_generation_digest at deploy)" "schema-generation-bump (PR-time guard: schema change without a generation bump fails, the drift that made #880 fail closed at deploy)" 6

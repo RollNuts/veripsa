@@ -1,0 +1,4 @@
+# Veripsa release gate (auto-discovered). One gate per file -> two PRs adding gates add two
+# FILES, never a shared line -> no false merge conflict on registration. register_gate is
+# defined in run_gates.sh. Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail]
+register_gate "tests/test_no_jargon_leak.py" "NO-JARGON-LEAK GATE: PASS" "no jargon leak" "no jargon leak (render.py output stays free of role names / internal fn ids / db-design terms / design prose)" "no jargon leak (the customer-facing PR check+comment never leaks an internal token; pure, no DB)" 16

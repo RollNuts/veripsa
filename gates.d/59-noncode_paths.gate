@@ -1,0 +1,4 @@
+# Veripsa release gate (auto-discovered). One gate per file -> two PRs adding gates add two
+# FILES, never a shared line -> no false merge conflict on registration. register_gate is
+# defined in run_gates.sh. Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail]
+register_gate "tests/test_noncode_paths.py" "NONCODE PATHS GATE: PASS" "non-code path filter" "non-code path filter (docs/assets excluded from coordination; code+unsupported-src kept; honest recall held)" "non-code paths (a README/lock touched with code must NOT drag the whole PR to 'Not analyzed')" 16

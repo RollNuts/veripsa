@@ -1,0 +1,4 @@
+# Veripsa release gate (auto-discovered). One gate per file -> two PRs adding gates add two
+# FILES, never a shared line -> no false merge conflict on registration. register_gate is
+# defined in run_gates.sh. Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail]
+register_gate "tests/test_onboarding_ux_p3.py" "ONBOARDING UX P3 GATE: PASS" "P3 onboarding UX: empty-repo install yields watching signal on first push (not silence/ingest_error); over-cap copy is honest (no completion promise)" "P3 onboarding UX: empty-repo install correctly classified (empty_repo:True not ingest_error), watching check fires on first push for both empty and deferred repos (cold_start detection), over-cap watching check uses honest copy ('may not index', 'may surface unknown' -- never 'will complete on next push'), deferred-repo copy unchanged" 24

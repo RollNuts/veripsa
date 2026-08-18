@@ -1,0 +1,4 @@
+# Veripsa release gate (auto-discovered). One gate per file -> two PRs adding gates add two
+# FILES, never a shared line -> no false merge conflict on registration. register_gate is
+# defined in run_gates.sh. Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail]
+register_gate "tests/test_tamper_identity.py" "TAMPER IDENTITY GATE: PASS" "tamper identity" "tamper identity (no cross-account write [pre-set pin / direct INSERT / installation spoof / App pre-pin]; no actor forgery [act_for + record_collision override are App-delegation-only]; no backdating [ledger ts server-set]; no identity spoof [credential/installation-derived; unprovisioned role refused])" "tamper-resistance: forging the record's IDENTITY (who/which-account/when) is refused (SECURITY-critical)" 20

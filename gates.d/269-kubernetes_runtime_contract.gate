@@ -1,0 +1,4 @@
+# Veripsa release gate (auto-discovered). One gate per file keeps registration changes isolated.
+# register_gate is defined in run_gates.sh.
+# Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail]
+register_gate "tests/test_kubernetes_runtime_contract.py" "KUBERNETES RUNTIME CONTRACT GATE: PASS" "Kubernetes production runtime dependency and extraction contract" "PyYAML imports fail-closed; build_graph connects a Service selector to workload labels and connects a Deployment to both ConfigMap and Secret resources." "The production dependency manifest and Docker image explicitly install the same bounded PyYAML 6.x release. The hermetic fixture exercises build_graph, not an isolated helper, and fails instead of skipping when the yaml module is absent. It proves Service selector to Deployment template-label coupling plus ConfigMap and Secret references in one namespace and application directory." 12

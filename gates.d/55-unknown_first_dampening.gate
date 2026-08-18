@@ -1,0 +1,4 @@
+# Veripsa release gate (auto-discovered). One gate per file -> two PRs adding gates add two
+# FILES, never a shared line -> no false merge conflict on registration. register_gate is
+# defined in run_gates.sh. Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail]
+register_gate "tests/test_unknown_first_dampening.py" "UNKNOWN-FIRST DAMPENING GATE: PASS" "unknown-first dampening" "unknown-first dampening (a hub-suppressed real import coupling renders 'unknown' with dampened_with, not a false clear; no over-fire)" "unknown-first over hub dampening (a dampened-but-REAL coupling is 'unknown'+visible, NEVER a silent 'clear')" 16

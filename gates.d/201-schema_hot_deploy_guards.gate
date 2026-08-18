@@ -1,0 +1,2 @@
+# Veripsa release gate (auto-discovered). One gate per file. register_gate is defined in run_gates.sh.
+register_gate "tests/test_schema_hot_deploy_guards.py" "SCHEMA HOT-DEPLOY GUARD: PASS" "schema hot-deploy DDL guard" "raw owner/RLS/policy/trigger DDL cannot be replayed and relation/data locks cannot be retained inside long function-publication transactions" "prevents a pre-deploy from acquiring a brief table lock and then freezing live cross-account DML while thousands of later schema statements run" 8

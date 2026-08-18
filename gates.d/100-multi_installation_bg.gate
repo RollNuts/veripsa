@@ -1,0 +1,2 @@
+# Veripsa release gate (auto-discovered). register_gate is defined in run_gates.sh.
+register_gate "tests/test_multi_installation_bg.py" "MULTI-INSTALLATION BACKGROUND GATE: PASS" "multi-installation background routing" "every background repository operation uses the owning installation rather than a singleton token" "synthetic two-installation fixture: non-primary freshness and reconciliation calls use the non-primary token, unknown accounts are skipped content-free, token minting is cached, and the primary path remains unchanged" 18

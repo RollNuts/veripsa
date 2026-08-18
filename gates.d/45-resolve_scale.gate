@@ -1,0 +1,4 @@
+# Veripsa release gate (auto-discovered). One gate per file -> two PRs adding gates add two
+# FILES, never a shared line -> no false merge conflict on registration. register_gate is
+# defined in run_gates.sh. Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail]
+register_gate "tests/test_resolve_scale.py" "RESOLVE-SCALE GATE: PASS" "resolve scale" "resolve scale (indexed import resolution is byte-identical to the scan AND large-universe stays fast — no O(edges×files) regression)" "resolve scale (import-resolution suffix index == brute-force reference + stays sub-quadratic: the worker's #1 per-event ceiling)" 16

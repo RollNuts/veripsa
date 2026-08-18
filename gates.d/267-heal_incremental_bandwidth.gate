@@ -1,0 +1,4 @@
+# Veripsa release gate (auto-discovered). One gate per file -> two PRs adding gates add two
+# FILES, never a shared line -> no false merge conflict on registration. register_gate is
+# defined in run_gates.sh. Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail]
+register_gate "tests/test_heal_incremental_bandwidth.py" "HEAL INCREMENTAL BANDWIDTH GATE: PASS" "heal incremental bandwidth" "heal incremental bandwidth (a warm self-heal patches only a proven-complete path-only Compare response; cold coordinates, failed/empty compares, GitHub's ambiguous 300-file Compare ceiling, push size mismatches, and the 2048-commit webhook ceiling all take the full path, so truncation can never stamp a partial graph as current)" "heal incremental bandwidth (outbound tarball traffic is 88% of the service's egress; a payload-less heal can patch only when GitHub proves the complete changed-path set)" 20

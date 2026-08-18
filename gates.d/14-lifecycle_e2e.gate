@@ -1,0 +1,4 @@
+# Veripsa release gate (auto-discovered). One gate per file -> two PRs adding gates add two
+# FILES, never a shared line -> no false merge conflict on registration. register_gate is
+# defined in run_gates.sh. Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail]
+register_gate "tests/test_lifecycle_e2e.py" "LIFECYCLE E2E GATE: PASS" "lifecycle e2e" "lifecycle e2e (from-install journey through the live per-event processor; composes cleanly, content-free)" "lifecycle e2e (the WHOLE customer journey in ONE tenant: install→push→PR-A→coupled PR-B→merge→grow→uninstall)" 16

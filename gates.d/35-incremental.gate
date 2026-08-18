@@ -1,0 +1,4 @@
+# Veripsa release gate (auto-discovered). One gate per file -> two PRs adding gates add two
+# FILES, never a shared line -> no false merge conflict on registration. register_gate is
+# defined in run_gates.sh. Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail]
+register_gate "tests/test_incremental.py" "INCREMENTAL GATE: PASS" "incremental ingest" "incremental ingest (touched-row patch over bounded complete resolution context equals a full re-ingest)" "incremental ingest (a patch == a full re-ingest of the same end-state; the busy-repo cost guard)" 16

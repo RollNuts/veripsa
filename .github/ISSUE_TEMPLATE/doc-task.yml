@@ -1,0 +1,66 @@
+name: Documentation task
+description: Scoped public-source documentation work suitable for an AI agent
+title: "[Docs] "
+labels: ["docs"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this for public-source documentation and README changes.
+        Public copy must stay availability-aware and public-safe.
+        Do not include secrets/tokens, webhook payloads, GitHub App private keys, installation access tokens, source file bodies, or diff bodies in public issues. Route suspected vulnerabilities through `SECURITY.md`.
+
+  - type: textarea
+    id: target
+    attributes:
+      label: Target files
+      description: Which docs or article files should be changed?
+      placeholder: |
+        - docs/<file>.md
+    validations:
+      required: true
+
+  - type: textarea
+    id: search-intent
+    attributes:
+      label: Search intent / reader pain
+      description: What should this article rank for or help with?
+      placeholder: |
+        Example: GitHub Copilot / Claude / Codex creating PRs; merge queue not enough; AI code review bottleneck.
+    validations:
+      required: true
+
+  - type: textarea
+    id: public-boundary
+    attributes:
+      label: Public boundary
+      description: What must not be disclosed?
+      value: |
+        Do not expose scoring, routing, feature-extraction, graph-construction, prioritization details, or unpublished metrics.
+        Keep content-free precise: source file bodies and diff bodies are not stored, displayed, or used as code-review output.
+    validations:
+      required: true
+
+  - type: textarea
+    id: requirements
+    attributes:
+      label: Requirements
+      placeholder: |
+        - Keep title problem-first / market-keyword-first.
+        - Keep Veripsa out of the title unless explicitly needed.
+        - Keep CTA at the end.
+        - Keep published:false unless owner says otherwise.
+    validations:
+      required: true
+
+  - type: textarea
+    id: validation
+    attributes:
+      label: Validation
+      value: |
+        - Manual link check
+        - Manual public-claims check
+        - Zenn title / prepublish checklist check
+        - No runtime tests needed unless code changes are introduced
+    validations:
+      required: true

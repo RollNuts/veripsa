@@ -1,0 +1,14 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security reports
+    url: https://github.com/RollNuts/veripsa/security/policy
+    about: Please do not open public issues for suspected vulnerabilities, secrets, webhook payloads, GitHub App private keys, or installation tokens.
+  - name: Veripsa Core support guide
+    url: https://github.com/RollNuts/veripsa/blob/main/SUPPORT.md
+    about: Use this for install, first-run, missing-check, and support metadata boundaries.
+  - name: Public demo repository
+    url: https://github.com/RollNuts/veripsa/blob/main/SUPPORT.md
+    about: Read the availability and public-safe support boundary before filing.
+  - name: Veripsa website
+    url: https://veripsa.com
+    about: Product and trust information; hosted installation is currently suspended.

@@ -1,0 +1,145 @@
+{
+  "_description": "An action_required PR whose ack went STALE: the veripsa-ack label is present but bound to a different (old) coupling snapshot, so the coupling changed \u2192 ack.state stale_reack, label_action remove, action_required true. Shows the ACK overlay re-pausing, not a fifth base state (base state stays wait_in_line).",
+  "brief": {
+    "ack": {
+      "coupling_snapshot": "1e3a32478970",
+      "label": "veripsa-ack",
+      "label_action": "remove",
+      "present": true,
+      "required": true,
+      "state": "stale_reack"
+    },
+    "acting_change": "PR-63",
+    "acting_head_sha": "1a2b3c4d5e",
+    "action_required": true,
+    "base_branch": "main",
+    "base_sha": "base4444eeee",
+    "enforcement": "advisory",
+    "evaluated_against": [
+      {
+        "head_sha": "i60",
+        "number": 60,
+        "ref": "PR-60",
+        "state": "clear"
+      }
+    ],
+    "freshness": {
+      "analysis_truncated": false,
+      "evaluated_at": "2026-07-21T09:20:00Z",
+      "graph_source_sha": "graph4444eeee",
+      "head_matches": true,
+      "policy_version": "detector-2026.07.1",
+      "status": "current"
+    },
+    "kind": "veripsa.coordination_brief",
+    "relationships": [
+      {
+        "confidence": "supported",
+        "evidence_kind": "structural",
+        "locus": {
+          "line_hi": 30,
+          "line_lo": 12,
+          "path": "core/session.py",
+          "symbol": "issue_token"
+        },
+        "recommended_action": "land_in_order",
+        "related_change": "PR-60",
+        "relationship_kind": "direct_collision",
+        "requires_human_ack": true,
+        "subject": "issue_token"
+      },
+      {
+        "confidence": "likely",
+        "evidence_kind": "textual",
+        "locus": {
+          "line": 20,
+          "path": "core/session.py"
+        },
+        "recommended_action": "rebase_before_merge",
+        "related_change": "PR-60",
+        "relationship_kind": "likely_rebase_conflict",
+        "requires_human_ack": false,
+        "subject": "core/session.py"
+      }
+    ],
+    "repository": {
+      "generation": 3,
+      "slug": "acme/app"
+    },
+    "schema_version": "1",
+    "state": "wait_in_line"
+  },
+  "input": {
+    "change_ref": "PR-63",
+    "impact": {
+      "branch": "main",
+      "changes": [
+        {
+          "agent": "me",
+          "change_id": "PR-63",
+          "collision_points": [
+            {
+              "behind": "ivy PR-60",
+              "line_hi": 30,
+              "line_lo": 12,
+              "path": "core/session.py",
+              "symbol": "issue_token"
+            }
+          ],
+          "conflict_points": [
+            {
+              "behind": "ivy PR-60",
+              "line": 20,
+              "path": "core/session.py"
+            }
+          ],
+          "contested_with": [],
+          "dampened_with": [],
+          "depends_on_changing": [],
+          "head_sha": "1a2b3c4d5e",
+          "impact": [],
+          "impact_count": 0,
+          "is_draft": false,
+          "label": "me PR-63",
+          "merge_conflict_likely": true,
+          "paths": [
+            "core/session.py"
+          ],
+          "queued_behind": [],
+          "queued_behind_paths": [],
+          "serialize_behind": [
+            "ivy PR-60"
+          ],
+          "shared_foundation": [],
+          "unknown_paths": [],
+          "verdict": "serialize"
+        },
+        {
+          "agent": "ivy",
+          "change_id": "PR-60",
+          "head_sha": "i60",
+          "label": "ivy PR-60",
+          "paths": [
+            "core/session.py"
+          ],
+          "verdict": "clear"
+        }
+      ],
+      "clusters": [],
+      "repo": "acme/app"
+    },
+    "kwargs": {
+      "ack": {
+        "label_present": true,
+        "prior_confirmed": true,
+        "prior_hash": "deadbeef0000"
+      },
+      "base_sha": "base4444eeee",
+      "evaluated_at": "2026-07-21T09:20:00Z",
+      "graph_source_sha": "graph4444eeee",
+      "head_matches": true,
+      "policy_version": "detector-2026.07.1",
+      "repository_generation": 3
+    }
+  }
+}

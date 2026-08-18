@@ -1,0 +1,4 @@
+# Veripsa release gate (auto-discovered). One gate per file -> two PRs adding gates add two
+# FILES, never a shared line -> no false merge conflict on registration. register_gate is
+# defined in run_gates.sh. Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail]
+register_gate "tests/test_render_malformed_impact.py" "RENDER MALFORMED-IMPACT GATE: PASS" "render malformed-impact" "render malformed-impact (a non-dict row in changes/clusters/verdict-detail lists is dropped, not crashed; well-formed rows still render; an unrecognised verdict renders honest 'unknown', never silent 'clear' or a raw value)" "render malformed-impact (a non-dict impact row can't crash render_pr_check → never NO-check/NO-comment; unexpected verdict stays honest, not 'clear')" 20

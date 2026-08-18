@@ -1,0 +1,4 @@
+# Veripsa release gate (auto-discovered). One gate per file -> two PRs adding gates add two
+# FILES, never a shared line -> no false merge conflict on registration. register_gate is
+# defined in run_gates.sh. Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail]
+register_gate "tests/test_graph_clock_monotonicity.py" "GRAPH CLOCK MONOTONICITY GATE: PASS" "graph clock monotonicity" "graph clock monotonicity (a payload-less re-ingest never erases the coordinate's delivery-order clock, so the reordered-delivery guard stays ARMED and a backlogged older push cannot regress a freshly-healed HEAD; newer pushes and same-sha refreshes still land)" "graph clock monotonicity (the payload-less-heal regression loop that made the SAME HEAD be fully re-ingested over and over)" 20

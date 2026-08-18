@@ -1,0 +1,4 @@
+# Veripsa release gate (auto-discovered). One gate per file -> two PRs adding gates add two
+# FILES, never a shared line -> no false merge conflict on registration. register_gate is
+# defined in run_gates.sh. Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail]
+register_gate "tests/test_github_resilience.py" "GITHUB RESILIENCE GATE: PASS" "github api resilience" "github api resilience (rate-limit/5xx retry, idempotent-friendly fail)" "github api resilience (retry+backoff on rate limits / 5xx; 404 & non-rate-limit 403 re-raise)" 16

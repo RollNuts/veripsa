@@ -1,0 +1,4 @@
+# Veripsa release gate (auto-discovered). One gate per file -> two PRs adding gates add two
+# FILES, never a shared line -> no false merge conflict on registration. register_gate is
+# defined in run_gates.sh. Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail]
+register_gate "tests/test_backup_restore.py" "BACKUP RESTORE GATE: PASS" "backup-restore" "backup-restore (the DR claim is a plan, not a hope: a populated tenant set exports content-free, restores byte-for-byte into a freshly-bootstrapped DB — every durable event KIND incl. prediction/advice_outcome + the statement stream — RLS-pinned with no cross-tenant bleed, the registry restored FIRST so no orphan, idempotent on re-run, and an empty DB exports an honest empty)" "backup-restore (DISASTER RECOVERY, PROVEN: export → fresh DB → import round-trips the durable rows incl. the NEW prediction/advice_outcome answer-check kinds; content-free; per-tenant; no orphan; idempotent; empty-DB)" 22

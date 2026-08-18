@@ -1,0 +1,4 @@
+# Veripsa release gate (auto-discovered). One gate per file -> two PRs adding gates add two
+# FILES, never a shared line -> no false merge conflict on registration. register_gate is
+# defined in run_gates.sh. Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail]
+register_gate "tests/test_purge_inflight_delivery.py" "PURGE IN-FLIGHT DELIVERY GATE: PASS" "durable account causality and uninstall supersession" "Real PostgreSQL connections prove account-scoped enqueue/claim transaction locking, lock-after received_at, ordered head row locking, failed-installation rearm order, generic DLQ isolation, indexed causal lookup, and claimable urgent uninstall supersession. Purge uses the identical (received_at,delivery_key) boundary so same-timestamp reinstalls survive." "Durable account causality cannot be overtaken across connections; privacy uninstall absorbs unstarted predecessors without erasing later generations or bypassing active processing." 24

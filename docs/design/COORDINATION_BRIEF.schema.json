@@ -1,0 +1,322 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://veripsa.com/schemas/coordination_brief/v1.json",
+  "title": "Veripsa Coordination Brief",
+  "description": "A stable, read-only, versioned, content-free machine-readable form of the same pre-merge coordination judgment Veripsa already renders as a GitHub check + PR comment. It SERIALIZES the existing verdict/relationship output of core.main_impact_surface for ONE acting change (a PR) against a protected branch, tied to an exact acting_head_sha + base_sha. It carries paths, symbol names, line numbers, in-flight PR refs, and a content-free coupling hash ONLY -- never source bodies, diff bodies, secrets, or raw graph-size counts (fan-in, symbol counts, downstream-file counts, thresholds). It is deterministic (same inputs -> same Brief) and consistent with the existing verdict contract (states clear / heads_up / wait_in_line / unknown). Paused is NOT a fifth base state: it is modelled as the ack overlay (ack.state + requires_human_ack on the relevant relationship + action_required).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "kind",
+    "repository",
+    "base_branch",
+    "acting_change",
+    "acting_head_sha",
+    "state",
+    "action_required",
+    "enforcement",
+    "relationships",
+    "ack",
+    "freshness"
+  ],
+  "properties": {
+    "schema_version": {
+      "description": "The Brief schema major version. Bumped only on a breaking field/enum change; additive fields do not bump it.",
+      "const": "1"
+    },
+    "kind": {
+      "description": "A stable discriminator so a consumer can recognise a Brief regardless of transport.",
+      "const": "veripsa.coordination_brief"
+    },
+    "repository": {
+      "description": "The repository the acting change targets, promoted to an object so the Brief can pin the code-graph GENERATION the verdict was computed under (a repository-lifecycle / graph-regeneration ordinal). slug is the content-free owner/repo the check already posts to; generation lets a consumer detect a graph regeneration that could invalidate a pinned Brief. generation is null when the caller does not supply one -- a Brief without it is still valid.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["slug"],
+      "properties": {
+        "slug": {
+          "description": "owner/repo the acting change targets. Content-free (the repo slug the check already posts to).",
+          "type": "string",
+          "minLength": 1
+        },
+        "generation": {
+          "description": "The repository / code-graph generation (a monotonic lifecycle ordinal) the verdict was computed under, when the caller supplies it. A consumer can detect a graph regeneration -- a different generation -- that could invalidate a Brief pinned to the old graph. Null when not supplied. Content-free: an opaque ordinal, NEVER a graph-size count (fan-in, symbol count, downstream-file count).",
+          "type": ["integer", "null"],
+          "minimum": 0
+        }
+      }
+    },
+    "base_branch": {
+      "description": "The protected branch the acting change is heading to (e.g. main).",
+      "type": "string",
+      "minLength": 1
+    },
+    "acting_change": {
+      "description": "The change this Brief is about, as a content-free ref: PR-<n> (a pull request) or BR-<branch> (a branch reservation with no open PR).",
+      "type": "string",
+      "pattern": "^(PR-[0-9]+|BR-.+)$"
+    },
+    "acting_head_sha": {
+      "description": "The exact commit SHA the Brief was computed against (the analyzed head of the acting change). A Brief is ALWAYS pinned to one head; a new head yields a new Brief.",
+      "type": "string",
+      "minLength": 7
+    },
+    "base_sha": {
+      "description": "The exact base-branch tip SHA the analysis was relative to, when the caller supplies it -- the 'base.sha' provenance pin: base_branch names WHICH base and base_sha pins its exact state, so a consumer can detect the base moving under the analysis. Kept flat (rather than nested under a 'base' object) to stay the least-disruptive shape; base_branch + base_sha together carry the base identity. Null when the delivery path did not carry a single base tip (the engine tracks base per-path, not as one branch SHA -- see design doc).",
+      "type": ["string", "null"]
+    },
+    "state": {
+      "description": "The base coordination state -- the 1:1 machine form of the check verdict. clear=nothing in flight touches this; heads_up=coordinate (semantic coupling / blast radius / soft overlap); wait_in_line=a direct collision is ahead, land in order; unknown=not enough signal to call this clear. Paused is NOT here (it is the ack overlay).",
+      "type": "string",
+      "enum": ["clear", "heads_up", "wait_in_line", "unknown"]
+    },
+    "action_required": {
+      "description": "True iff a merge-gating condition is present: an unresolved conflict marker (a hard build-breaker), OR a material coupling that is un-acknowledged (ack.state in paused/stale_reack). Veripsa is advisory by default; this flag is the ONLY thing that gates a merge, and only when the customer has marked the Veripsa check required in branch protection.",
+      "type": "boolean"
+    },
+    "enforcement": {
+      "description": "How Veripsa's signal is enforced. Always 'advisory': Veripsa records and steers; the customer's branch-protection policy decides what blocks. action_required is a SIGNAL that policy may act on, not a Veripsa-imposed block.",
+      "const": "advisory"
+    },
+    "redacted": {
+      "description": "True on a pull request from a fork: cross-change refs and base-repo paths are withheld (they would leak the private base repo's in-flight structure to an outside contributor), so relationships carry only the fork's own conflict markers plus the state. Absent/false otherwise.",
+      "type": "boolean"
+    },
+    "relationships": {
+      "description": "The coordination relationships between the acting change and the rest of the in-flight world, each a serialization of one signal the check/comment already renders. Deterministically ordered. Empty on a clear PR with no co-signals.",
+      "type": "array",
+      "items": { "$ref": "#/$defs/relationship" }
+    },
+    "evaluated_against": {
+      "description": "Provenance pins for every OTHER in-flight change the relationships name, each tied to the exact head SHA the analysis saw. This is the field that lets a Brief detect a MOVED partner: if a counterpart's current head no longer equals the head_sha recorded here, the coupling was evaluated against a stale partner and the Brief should be recomputed. The acting change itself is excluded (it is pinned by acting_head_sha). Deterministically ordered by ref. Empty when the Brief names no counterpart change (a clear PR, a fork's redacted Brief, or a first-sync).",
+      "type": "array",
+      "items": { "$ref": "#/$defs/evaluated_change" }
+    },
+    "ack": { "$ref": "#/$defs/ack" },
+    "freshness": { "$ref": "#/$defs/freshness" }
+  },
+  "$defs": {
+    "change_ref": {
+      "type": "string",
+      "pattern": "^(PR-[0-9]+|BR-.+)$"
+    },
+    "evaluated_change": {
+      "description": "One counterpart in-flight change the analysis was evaluated against, pinned to the exact head SHA it had at analysis time. Content-free: a ref, a PR number, a head SHA, and the counterpart's own coordination state -- never a body, a diff, or a breadth count.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ref", "number", "head_sha", "state"],
+      "properties": {
+        "ref": {
+          "description": "The counterpart change, as a content-free ref (PR-<n>/BR-<branch>) -- the same ref used in relationships[].related_change / ordered_changes.",
+          "type": "string",
+          "pattern": "^(PR-[0-9]+|BR-.+)$"
+        },
+        "number": {
+          "description": "The pull-request number when the ref is a PR (the integer in PR-<n>); null for a BR- branch reservation, which has no PR number.",
+          "type": ["integer", "null"],
+          "minimum": 1
+        },
+        "head_sha": {
+          "description": "The exact head commit SHA the counterpart change had AT THE TIME the analysis ran. A consumer compares this to the counterpart's current head to detect a moved partner. Null only when the counterpart's head could not be resolved (the partner is still listed so it is never silently dropped).",
+          "type": ["string", "null"]
+        },
+        "state": {
+          "description": "The counterpart change's own coordination state at analysis time -- the same four base states -- so a consumer sees at a glance whether the partner was itself clear / heads_up / wait_in_line / unknown. Content-free.",
+          "type": "string",
+          "enum": ["clear", "heads_up", "wait_in_line", "unknown"]
+        }
+      }
+    },
+    "relationship": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "relationship_kind",
+        "related_change",
+        "evidence_kind",
+        "recommended_action",
+        "requires_human_ack",
+        "confidence"
+      ],
+      "properties": {
+        "relationship_kind": {
+          "description": "Which coordination signal this is -- the enumerated kinds map 1:1 to the engine's relationship capabilities (main_impact_surface + the render layer).",
+          "type": "string",
+          "enum": [
+            "conflict_marker",
+            "direct_collision",
+            "likely_rebase_conflict",
+            "holding_lane",
+            "depends_on_changing_contract",
+            "semantic_coupling",
+            "suppressed_coupling",
+            "blast_radius",
+            "landing_order",
+            "recurring_contention",
+            "co_change",
+            "main_moved",
+            "unverified_new_path",
+            "unverified_gap_path",
+            "truncated_analysis"
+          ]
+        },
+        "related_change": {
+          "description": "The other in-flight change this relationship is with, as a content-free ref (PR-<n>/BR-<branch>). Null for a structural self-observation with no counterpart change (blast_radius, recurring_contention, co_change, main_moved, the unverified_* / truncated_analysis notes, and landing_order whose ordered set lives in ordered_changes).",
+          "anyOf": [ { "$ref": "#/$defs/change_ref" }, { "type": "null" } ]
+        },
+        "evidence_kind": {
+          "description": "What KIND of evidence backs this relationship. structural=a code-graph edge / symbol / line geometry (import, call, shared table, shared config key, shared column, blast radius, dependency DAG); historical=repeated co-change in the repo's landed history; textual=git line geometry (a conflict marker, a likely rebase conflict, a file that moved on the base); unverified=could not be computed or was deliberately suppressed (new path, extractor gap, truncation, hub-dampened coupling).",
+          "type": "string",
+          "enum": ["structural", "historical", "textual", "unverified"]
+        },
+        "subject": {
+          "description": "The primary named locus of the relationship: a file path, a symbol name, or null. Content-free (a name Veripsa already surfaces on the comment). The coupling MECHANISM (which edge kind) is deliberately NOT named -- that is the moat.",
+          "type": ["string", "null"]
+        },
+        "locus": { "$ref": "#/$defs/locus" },
+        "related_paths": {
+          "description": "Content-free file paths this relationship runs through (e.g. the shared lane, the downstream reach, the moved files). Capped like the comment; NEVER a raw count. Absent when there is no path list.",
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "more_related_paths": {
+          "description": "True when related_paths was capped and more exist -- a qualitative 'and more', never the remaining count (moat).",
+          "type": "boolean"
+        },
+        "reach": {
+          "description": "For blast_radius only: a qualitative severity word for how far the change fans out downstream. Never a file count (moat).",
+          "type": "string",
+          "enum": ["local", "wide"]
+        },
+        "basis": {
+          "description": "For recurring_contention only: WHY the file is a chronic contention point, qualitatively. foundation=imported widely; god_file=defines many distinct pieces; both. Never the raw fan-in / symbol count (moat).",
+          "type": "string",
+          "enum": ["foundation", "god_file", "both"]
+        },
+        "ordered_changes": {
+          "description": "For landing_order only: the suggested land order for the contention neighbourhood, most-foundational-first, deduped to one entry per distinct change. In-flight PR refs are customer-facing (the comment numbers them); the code graph's size is not, and is never here.",
+          "type": "array",
+          "items": { "$ref": "#/$defs/change_ref" }
+        },
+        "acting_position": {
+          "description": "For landing_order only: the acting change's 1-based position in ordered_changes, or null if it is not placed.",
+          "type": ["integer", "null"],
+          "minimum": 1
+        },
+        "recommended_action": {
+          "description": "The advisory next step for THIS relationship. land_in_order=wait behind the holder and rebase once; align_before_merge=a foundation you build on is being edited, align to it; coordinate_before_merge=a semantic coupling, revise together; rebase_before_merge=the base or an overlapping insertion point moved, rebase; resolve_conflict_marker=re-resolve an unresolved git marker (build-breaker); free_the_lane=you hold a lane others wait on, land promptly; consider_split=a load-bearing file keeps causing collisions; investigate=an unverified/gap/truncated area to look at; monitor=informational, no required step.",
+          "type": "string",
+          "enum": [
+            "land_in_order",
+            "align_before_merge",
+            "coordinate_before_merge",
+            "rebase_before_merge",
+            "resolve_conflict_marker",
+            "free_the_lane",
+            "consider_split",
+            "investigate",
+            "monitor"
+          ]
+        },
+        "requires_human_ack": {
+          "description": "True iff this specific relationship is part of a MATERIAL coupling that Veripsa pauses on until acknowledged (a direct same-path collision, or a semantic coupling with an in-flight counterpart) AND the acting change is currently material. Exactly mirrors what ack.coupling_snapshot binds to. False on advisory notices, conflict markers (resolve, do not ack), and non-material relationships.",
+          "type": "boolean"
+        },
+        "confidence": {
+          "description": "How strong the evidence is. certain=a deterministic fact (an unresolved marker WILL break the build); corroborated=two independent signals agree (a structural edge AND repeated co-change); supported=a single direct structural edge or a surviving collision; likely=a content-free heuristic with no body-level proof ('likely', not 'will' -- rebase-conflict geometry, base-moved overlap, a standalone co-change hint); unverified=could not be computed or was suppressed.",
+          "type": "string",
+          "enum": ["certain", "corroborated", "supported", "likely", "unverified"]
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "relationship_kind": { "const": "blast_radius" } } },
+          "then": { "properties": { "related_change": { "const": null } } }
+        },
+        {
+          "if": { "properties": { "relationship_kind": { "const": "landing_order" } } },
+          "then": { "required": ["ordered_changes"] }
+        }
+      ]
+    },
+    "locus": {
+      "description": "The finer point of a collision/conflict when the engine could place one. Content-free: a path, a symbol NAME, and/or line numbers -- never code. All fields optional; the object is omitted entirely when only the file is known and it is already in subject/related_paths.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "path": { "type": ["string", "null"] },
+        "symbol": { "type": ["string", "null"] },
+        "line": { "type": ["integer", "null"], "minimum": 1 },
+        "line_lo": { "type": ["integer", "null"], "minimum": 1 },
+        "line_hi": { "type": ["integer", "null"], "minimum": 1 }
+      }
+    },
+    "ack": {
+      "description": "The 一時停止 (pause-and-acknowledge) OVERLAY -- NOT a base state. A material coupling holds the check at action_required until someone records the veripsa-ack label; that flips ack.state to acknowledged. Modelled here as a flag block so the four base states stay exactly four.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["label", "required", "present", "state", "coupling_snapshot"],
+      "properties": {
+        "label": {
+          "description": "The GitHub label that records an acknowledgement. Adding it is a recorded, conscious stop-and-engage -- NOT an approval, pardon, or sign-off.",
+          "const": "veripsa-ack"
+        },
+        "required": {
+          "description": "True iff the acting change is in a material coupling that needs acknowledgement (a real in-flight cross-PR collision). False for clear/unknown/advisory-only and on fork PRs.",
+          "type": "boolean"
+        },
+        "present": {
+          "description": "Whether the veripsa-ack label is on the acting change right now (caller-supplied from GitHub).",
+          "type": "boolean"
+        },
+        "state": {
+          "description": "The overlay state. not_material=nothing to acknowledge; paused=material and un-acked (action_required); acknowledged=label present and bound to the current coupling snapshot; stale_reack=the coupling materially changed since the ack, re-acknowledge; ack_verification_pending=a transient authority read means the ack was neither trusted nor stripped.",
+          "type": "string",
+          "enum": ["not_material", "paused", "acknowledged", "stale_reack", "ack_verification_pending"]
+        },
+        "coupling_snapshot": {
+          "description": "A stable, content-free 12-hex identity of THIS coupling (the sorted set of partner refs + colliding paths, hashed -- NEVER file contents). An ack binds to it; a materially changed coupling yields a different hash and re-pauses. Empty string when not material.",
+          "type": "string",
+          "pattern": "^([0-9a-f]{12})?$"
+        },
+        "label_action": {
+          "description": "Informational: 'remove' when a stale ack's label must be taken off so it reads un-acked, else null. The delivery path (not the Brief) performs any label change.",
+          "enum": ["remove", null]
+        }
+      }
+    },
+    "freshness": {
+      "description": "Whether this Brief still describes the state it was computed against. A Brief is pinned to acting_head_sha (+ the counterpart heads in evaluated_against, the graph in graph_source_sha/repository.generation, and the engine tuning in policy_version); the consumer must check status / head_matches before trusting it.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["head_matches", "analysis_truncated"],
+      "properties": {
+        "evaluated_at": {
+          "description": "ISO-8601 timestamp the analysis was performed, when the caller supplies it. Null when not supplied (kept out of the pure serializer so the Brief stays deterministic -- the delivery path stamps it).",
+          "type": ["string", "null"]
+        },
+        "head_matches": {
+          "description": "True when acting_head_sha equals the acting change's CURRENT head at delivery time; false when the head moved under the analysis (the Brief is stale, recompute); null when the caller could not determine it. Retained as the raw signal; `status` is the canonical, explicit freshness verdict derived from it.",
+          "type": ["boolean", "null"]
+        },
+        "analysis_truncated": {
+          "description": "True when the acting change changed more files than Veripsa analyzes in one pass, so the verdict covers only the analyzed subset and an unparsed remainder is unknown-not-clear.",
+          "type": "boolean"
+        },
+        "status": {
+          "description": "The explicit, canonical freshness verdict -- the 4-value replacement for the implicit head_matches boolean. current=head still matches; stale=the head moved under the analysis (recompute); unknown=the caller could not determine it; unavailable=freshness could not be established at all (no current-head read happened). When the caller does not supply it, it is derived from head_matches (true->current, false->stale, null->unknown); 'unavailable', which head_matches cannot encode, appears only when supplied. Optional/additive: a Brief without it is still valid.",
+          "type": "string",
+          "enum": ["current", "stale", "unknown", "unavailable"]
+        },
+        "graph_source_sha": {
+          "description": "The code-graph snapshot / generation SHA the verdict was computed against, when the caller supplies it -- a freshness pin distinct from acting_head_sha (which pins the diff) and repository.generation (a lifecycle ordinal). Lets a consumer detect that the graph the analysis ran on has since changed. Null when not supplied. Content-free.",
+          "type": ["string", "null"]
+        },
+        "policy_version": {
+          "description": "The detector / policy revision token the verdict was produced by. DISTINCT from schema_version, which versions the Brief SHAPE, not the engine tuning: two Briefs with the same schema_version may have been produced by different detector revisions, and this token makes that difference detectable. Null when not supplied. Content-free (an opaque revision token).",
+          "type": ["string", "null"]
+        }
+      }
+    }
+  }
+}

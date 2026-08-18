@@ -1,0 +1,29 @@
+-- PHASE FINAL — LEAST-PRIVILEGE BACKSTOP (audit iter-5 P3). Runs LAST (after every CREATE FUNCTION in 10..95),
+-- so it sees the whole surface. ============================================================================
+--
+-- THE DEFECT it closes. Postgres grants EXECUTE to PUBLIC by DEFAULT on every CREATE FUNCTION. The *_with_authority
+-- WRITE fns each strip that default with a paired `REVOKE ... FROM PUBLIC` (the writer-revoke-public discipline),
+-- but the READ surfaces (account_surface / main_impact_surface / split_candidates / board_surface / effect_surface /
+-- the dozens of *_surface lenses / coordinate_* / change_* / the internal _clean_* helpers / the trigger fns) mostly
+-- did NOT — so the PUBLIC default left them EXECUTE-able by EVERY role, including the least-privilege seams
+-- veripsa_billing and example_platform_reader whose docs/tests CLAIM a tiny reachable surface (the plan setters /
+-- the two effect reads). Not exploitable today (the identity layer 42501s a credential-less role, FORCE-RLS + the
+-- missing table grant still wall the data), but the CLAIM was FALSE against the catalog, and the PUBLIC default
+-- silently REOPENS on every fresh CREATE FUNCTION. This makes the claim TRUE and self-healing.
+--
+-- WHY A BLANKET REVOKE (not 40 per-fn edits). Every function that a legitimate tenant role needs ALREADY carries an
+-- EXPLICIT GRANT to exactly the role(s) that use it (reader/writer/steward for the read surfaces, veripsa_app for the
+-- App-delegation writes, the owner for the cross-tenant lenses; the App inherits veripsa_writer; the migrator owns
+-- them all). REVOKE-FROM-PUBLIC does NOT touch those explicit role grants — it removes ONLY the blanket PUBLIC
+-- default. Proven before landing: after this blanket revoke, ZERO core functions become unreachable by the legit
+-- roles (reader/writer/steward/app/migrator) — i.e. NOTHING relied on PUBLIC alone for a legitimate path. So the
+-- ONLY privilege removed is the unintended ambient reach a NON-tenant role (billing / platform-reader) inherited via
+-- PUBLIC. One statement covers the WHOLE schema — including read surfaces in modules other agents own — without
+-- editing them, and it AUTO-COVERS any future fn (a new CREATE FUNCTION's PUBLIC default is stripped here on the next
+-- apply, so the least-privilege claim can never silently regress). Function-only DDL → contention-free (no table
+-- lock), safe to apply on a live, busy prod (the prod-apply discipline).
+--
+-- The complement is ENFORCED by tests/test_billing_role.py: it asserts veripsa_billing has EXECUTE on EXACTLY the
+-- plan setters and FALSE on EVERY other core function — so the least-privilege claim is checked against the catalog,
+-- not merely documented. example_platform_reader's own gate (test_platform_reader.py) asserts its four-fn surface.
+REVOKE EXECUTE ON ALL FUNCTIONS IN SCHEMA core FROM PUBLIC;

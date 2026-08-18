@@ -1,0 +1,12 @@
+[
+  {"label": "migration",      "files": ["migrations/001_init.sql"]},
+  {"label": "accounts-reader", "files": ["backend/repo.py"]},
+  {"label": "billing",         "files": ["backend/billing.py"]},
+  {"label": "worker",          "files": ["backend/worker.py"]},
+  {"label": "auth",            "files": ["backend/auth.py"]},
+  {"label": "api",             "files": ["backend/api.py"]},
+  {"label": "api-hotfix",      "files": ["backend/api.py"]},
+  {"label": "fe-client",       "files": ["frontend/src/client.ts"]},
+  {"label": "fe-app",          "files": ["frontend/src/app.ts"]},
+  {"label": "newfeature",      "files": ["backend/brand_new_feature.py"]}
+]

@@ -1,0 +1,4 @@
+# Veripsa release gate (auto-discovered). One gate per file -> two PRs adding gates add two
+# FILES, never a shared line -> no false merge conflict on registration. register_gate is
+# defined in run_gates.sh. Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail]
+register_gate "tests/test_multiproc_concurrency.py" "MULTI-INSTANCE CONCURRENCY GATE: PASS" "multi-instance concurrency" "multi-instance concurrency (session advisory lock held across the body txn + mutually exclusive cross-process; exactly-one-active claim under concurrent declares; coherent graph + newer-commit-wins under serialized ingest; one account row on concurrent first-sight)" "multi-instance / cross-process concurrency (Render overlaps TWO instances on every deploy + GitHub delivers webhooks concurrently: SEPARATE-connection races prove the per-repo advisory lock serializes across processes, the claim CAS never double-grants, no torn graph, idempotent first-sight provision)" 20

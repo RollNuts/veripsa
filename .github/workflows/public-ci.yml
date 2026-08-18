@@ -1,0 +1,51 @@
+name: public-ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: public-ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  public-release-gates:
+    name: public-release-gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout immutable source
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Enforce public boundary
+        run: python3 scripts/public_snapshot_gate.py
+
+      - name: Install focused runtime dependency
+        run: python3 -m pip install --no-deps 'psycopg2-binary>=2.9,<2.10'
+
+      - name: Scan credential and local-path hygiene
+        run: python3 tests/test_secret_hygiene.py
+
+      - name: Compile Python sources
+        run: python3 -m compileall -q .
+
+      - name: Run credential lifecycle leak test
+        run: python3 tests/test_auth_lifecycle.py
+
+      - name: Run content-free renderer test
+        run: python3 tests/test_split_advice.py
+
+      - name: Verify inactive public App manifest contract
+        run: python3 tests/test_app_manifest_public_contract.py
+
+      - name: Verify public status and HTTP privacy boundaries
+        run: |
+          python3 tests/test_public_statusz.py
+          python3 tests/test_http_security_headers.py

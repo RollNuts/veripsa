@@ -1,0 +1,4 @@
+# Veripsa release gate (auto-discovered). One gate per file -> two PRs adding gates add two
+# FILES, never a shared line -> no false merge conflict on registration. register_gate is
+# defined in run_gates.sh. Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail]
+register_gate "tests/test_human_judgment_taxonomy.py" "HUMAN JUDGMENT TAXONOMY GATE: PASS" "human judgment taxonomy" "human judgment taxonomy (two closed enums, out-of-enum values REFUSED not stored, content-free detail with no free-text field, append-only history with latest-wins aggregation, and an allowlisted internal 'useful' can never inflate useful_external)" "human judgment taxonomy (the External Validation Gate's only market-validation signal, and the guard that internal dogfood cannot fake it)" 20

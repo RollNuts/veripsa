@@ -1,0 +1,4 @@
+# Veripsa release gate (auto-discovered). One gate per file -> two PRs adding gates add two
+# FILES, never a shared line -> no false merge conflict on registration. register_gate is
+# defined in run_gates.sh. Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail]
+register_gate "tests/test_multilang_edge_precision.py" "MULTI-LANGUAGE EDGE PRECISION GATE: PASS" "multi-language edge precision" "multi-language edge precision (go/java/kotlin/swift/csharp/rust/php/ts/cpp: member calls captured, FQN imports kept, the Kotlin import-keyword false edge stays dead)" "multi-language edge precision/recall (per-language call/import edges on the known-hard cases: re-exports, aliases, member/navigation calls, FQN imports, keyword-vs-statement node-type collisions)" 16

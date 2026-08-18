@@ -1,0 +1,4 @@
+# Veripsa release gate (auto-discovered). One gate per file -> two PRs adding gates add two
+# FILES, never a shared line -> no false merge conflict on registration. register_gate is
+# defined in run_gates.sh. Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail]
+register_gate "tests/test_dampened_identity.py" "DAMPENED IDENTITY GATE: PASS" "dampened identity" "dampened identity (the _dampened_adjacency pre-restrict+materialize perf fix is byte-identical to origin/main across hub/calls/res/none shapes — verdicts can't drift)" "dampened identity (the bounded _dampened_adjacency returns the SAME rowset as the un-restricted form — a perf fix that never changes a verdict)" 24

@@ -1,0 +1,5 @@
+# Veripsa release gate (auto-discovered). One gate per file -> two PRs adding gates add two
+# FILES, never a shared line -> no false merge conflict on registration. register_gate is
+# defined in run_gates.sh. Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail]
+# NOTE: NO backticks and NO dollar-sign in the desc/blurb text below (shell-eval fragility -- see CLAUDE.md).
+register_gate "tests/test_schema_runtime_contract.py" "SCHEMA RUNTIME CONTRACT GATE: PASS" "boot-time schema-runtime contract assertion (Python ahead of DB schema fails closed)" "boot-time schema-runtime contract: application code cannot promote against an older database shape. On boot, pg_catalog and information_schema are checked for every required function arity, column, relation, index, constraint, and trigger. Any mismatch keeps health at 503; the kill switch remains available for an explicit emergency forward-compat operation. The check reads metadata only" "boot-time schema-runtime contract assertion passes on a clean DB and rejects a synthetic old-signature/missing-column fixture; health reflects the result and the runtime contract agrees with the SQL source" 32

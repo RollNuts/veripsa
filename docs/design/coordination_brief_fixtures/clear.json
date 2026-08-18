@@ -1,0 +1,83 @@
+{
+  "_description": "A truly clear PR: nothing in flight touches it. No relationships, ack not_material, action_required false.",
+  "brief": {
+    "ack": {
+      "coupling_snapshot": "",
+      "label": "veripsa-ack",
+      "label_action": null,
+      "present": false,
+      "required": false,
+      "state": "not_material"
+    },
+    "acting_change": "PR-7",
+    "acting_head_sha": "c0ffee1234",
+    "action_required": false,
+    "base_branch": "main",
+    "base_sha": "base0000aaaa",
+    "enforcement": "advisory",
+    "evaluated_against": [],
+    "freshness": {
+      "analysis_truncated": false,
+      "evaluated_at": "2026-07-21T09:00:00Z",
+      "graph_source_sha": "graph0000aaaa",
+      "head_matches": true,
+      "policy_version": "detector-2026.07.1",
+      "status": "current"
+    },
+    "kind": "veripsa.coordination_brief",
+    "relationships": [],
+    "repository": {
+      "generation": 3,
+      "slug": "acme/app"
+    },
+    "schema_version": "1",
+    "state": "clear"
+  },
+  "input": {
+    "change_ref": "PR-7",
+    "impact": {
+      "branch": "main",
+      "changes": [
+        {
+          "agent": "me",
+          "change_id": "PR-7",
+          "collision_points": [],
+          "conflict_points": [],
+          "contested_with": [],
+          "dampened_with": [],
+          "depends_on_changing": [],
+          "head_sha": "c0ffee1234",
+          "impact": [],
+          "impact_count": 0,
+          "is_draft": false,
+          "label": "me PR-7",
+          "merge_conflict_likely": false,
+          "paths": [
+            "docs/readme.md"
+          ],
+          "queued_behind": [],
+          "queued_behind_paths": [],
+          "serialize_behind": [],
+          "shared_foundation": [],
+          "unknown_paths": [],
+          "verdict": "clear"
+        }
+      ],
+      "clusters": [],
+      "repo": "acme/app"
+    },
+    "kwargs": {
+      "ack": {
+        "label_present": false,
+        "prior_confirmed": true,
+        "prior_hash": null
+      },
+      "base_sha": "base0000aaaa",
+      "evaluated_at": "2026-07-21T09:00:00Z",
+      "graph_source_sha": "graph0000aaaa",
+      "head_matches": true,
+      "policy_version": "detector-2026.07.1",
+      "repository_generation": 3
+    }
+  }
+}

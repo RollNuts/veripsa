@@ -1,0 +1,132 @@
+{
+  "_description": "A heads_up (warn) driven by a semantic coupling with PR-27 plus a wide blast radius, ACKNOWLEDGED (label present, snapshot matches). Shows the base state stays heads_up while the pause overlay is cleared: ack.state acknowledged, action_required false, requires_human_ack true on the coupling.",
+  "brief": {
+    "ack": {
+      "coupling_snapshot": "e6c2ed0cc811",
+      "label": "veripsa-ack",
+      "label_action": null,
+      "present": true,
+      "required": true,
+      "state": "acknowledged"
+    },
+    "acting_change": "PR-31",
+    "acting_head_sha": "aa11bb22cc",
+    "action_required": false,
+    "base_branch": "main",
+    "base_sha": "base1111bbbb",
+    "enforcement": "advisory",
+    "evaluated_against": [
+      {
+        "head_sha": "d33",
+        "number": 27,
+        "ref": "PR-27",
+        "state": "clear"
+      }
+    ],
+    "freshness": {
+      "analysis_truncated": false,
+      "evaluated_at": "2026-07-21T09:05:00Z",
+      "graph_source_sha": "graph1111bbbb",
+      "head_matches": true,
+      "policy_version": "detector-2026.07.1",
+      "status": "current"
+    },
+    "kind": "veripsa.coordination_brief",
+    "relationships": [
+      {
+        "confidence": "supported",
+        "evidence_kind": "structural",
+        "recommended_action": "coordinate_before_merge",
+        "related_change": "PR-27",
+        "relationship_kind": "semantic_coupling",
+        "requires_human_ack": true
+      },
+      {
+        "confidence": "supported",
+        "evidence_kind": "structural",
+        "more_related_paths": false,
+        "reach": "wide",
+        "recommended_action": "monitor",
+        "related_change": null,
+        "related_paths": [
+          "billing/webhook.py",
+          "billing/entitlement.py",
+          "api/checkout.py",
+          "api/quota.py"
+        ],
+        "relationship_kind": "blast_radius",
+        "requires_human_ack": false
+      }
+    ],
+    "repository": {
+      "generation": 3,
+      "slug": "acme/app"
+    },
+    "schema_version": "1",
+    "state": "heads_up"
+  },
+  "input": {
+    "change_ref": "PR-31",
+    "impact": {
+      "branch": "main",
+      "changes": [
+        {
+          "agent": "me",
+          "change_id": "PR-31",
+          "collision_points": [],
+          "conflict_points": [],
+          "contested_with": [
+            "dana PR-27"
+          ],
+          "dampened_with": [],
+          "depends_on_changing": [],
+          "head_sha": "aa11bb22cc",
+          "impact": [
+            "billing/webhook.py",
+            "billing/entitlement.py",
+            "api/checkout.py",
+            "api/quota.py"
+          ],
+          "impact_count": 4,
+          "is_draft": false,
+          "label": "me PR-31",
+          "merge_conflict_likely": false,
+          "paths": [
+            "billing/plan.py"
+          ],
+          "queued_behind": [],
+          "queued_behind_paths": [],
+          "serialize_behind": [],
+          "shared_foundation": [],
+          "unknown_paths": [],
+          "verdict": "warn"
+        },
+        {
+          "agent": "dana",
+          "change_id": "PR-27",
+          "head_sha": "d33",
+          "label": "dana PR-27",
+          "paths": [
+            "billing/entitlement.py"
+          ],
+          "verdict": "clear"
+        }
+      ],
+      "clusters": [],
+      "repo": "acme/app"
+    },
+    "kwargs": {
+      "ack": {
+        "label_present": true,
+        "prior_confirmed": true,
+        "prior_hash": "e6c2ed0cc811"
+      },
+      "base_sha": "base1111bbbb",
+      "evaluated_at": "2026-07-21T09:05:00Z",
+      "graph_source_sha": "graph1111bbbb",
+      "head_matches": true,
+      "policy_version": "detector-2026.07.1",
+      "repository_generation": 3
+    }
+  }
+}

@@ -1,0 +1,4 @@
+# Veripsa release gate (auto-discovered). One gate per file -> two PRs adding gates add two
+# FILES, never a shared line -> no false merge conflict on registration. register_gate is
+# defined in run_gates.sh. Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail]
+register_gate "tests/test_evaluate.py" "EVALUATE GATE: PASS" "evaluate report" "evaluate report (signal-is-real verdict on synthetic + honest-boundary, can't silently rot)" "evaluate (the 'try Veripsa on YOUR repo' sales report: verdict + cross-dir proof + honest boundary)" 16

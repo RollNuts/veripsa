@@ -1,0 +1,2 @@
+# Veripsa release gate (auto-discovered). register_gate is defined in run_gates.sh.
+register_gate "tests/test_pauseack_authoritative_label.py" "PAUSE ACK AUTHORITATIVE-LABEL GATE: PASS" "pause-ack current-label authority" "material decisions read current labels authoritatively rather than trusting event-specific payload labels" "synthetic integration fixture: acting and neighbor paths use the current pull-request label surface, clean PRs make no extra call, unreadable labels fail open, and a genuine coupling change still expires the acknowledgement" 40

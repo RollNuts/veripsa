@@ -1,0 +1,4 @@
+# Veripsa release gate (auto-discovered). One gate per file -> two PRs adding gates add two
+# FILES, never a shared line -> no false merge conflict on registration. register_gate is
+# defined in run_gates.sh. Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail] [timeout]
+register_gate "tests/test_dampened_res_scale.py" "DAMPENED RES SCALE GATE: PASS" "dampened res scale" "dampened res scale (first production-keyed 9k mixed-axis fresh-session call is bounded; explicit calls_h rows; stored-key vs legacy-NULL rowset equivalence; active resource edges materialize before the res-hub self-join)" "dampened res scale (self-contained production/legacy semantic identity plus mixed code/resource performance — an earlier in-process watchdog reserves deterministic scratch-DB cleanup)" 26 600

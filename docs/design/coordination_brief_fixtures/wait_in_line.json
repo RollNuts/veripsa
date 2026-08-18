@@ -1,0 +1,213 @@
+{
+  "_description": "A wait_in_line (serialize): PR-44 is queued behind holder PR-41 on route_request (direct_collision), itself holds a lane PR-46 waits on (holding_lane), and sits in a 3-PR contention neighbourhood with a suggested landing order. Un-acked material coupling \u2192 ack.state paused, action_required true.",
+  "brief": {
+    "ack": {
+      "coupling_snapshot": "1a4defcca5d9",
+      "label": "veripsa-ack",
+      "label_action": null,
+      "present": false,
+      "required": true,
+      "state": "paused"
+    },
+    "acting_change": "PR-44",
+    "acting_head_sha": "9988aabbcc",
+    "action_required": true,
+    "base_branch": "main",
+    "base_sha": "base2222cccc",
+    "enforcement": "advisory",
+    "evaluated_against": [
+      {
+        "head_sha": "e40",
+        "number": 40,
+        "ref": "PR-40",
+        "state": "clear"
+      },
+      {
+        "head_sha": "e41",
+        "number": 41,
+        "ref": "PR-41",
+        "state": "clear"
+      },
+      {
+        "head_sha": "e46",
+        "number": 46,
+        "ref": "PR-46",
+        "state": "clear"
+      }
+    ],
+    "freshness": {
+      "analysis_truncated": false,
+      "evaluated_at": "2026-07-21T09:10:00Z",
+      "graph_source_sha": "graph2222cccc",
+      "head_matches": true,
+      "policy_version": "detector-2026.07.1",
+      "status": "current"
+    },
+    "kind": "veripsa.coordination_brief",
+    "relationships": [
+      {
+        "confidence": "supported",
+        "evidence_kind": "structural",
+        "locus": {
+          "line_hi": 120,
+          "line_lo": 88,
+          "path": "core/router.py",
+          "symbol": "route_request"
+        },
+        "recommended_action": "land_in_order",
+        "related_change": "PR-41",
+        "relationship_kind": "direct_collision",
+        "requires_human_ack": true,
+        "subject": "route_request"
+      },
+      {
+        "confidence": "supported",
+        "evidence_kind": "structural",
+        "more_related_paths": false,
+        "recommended_action": "free_the_lane",
+        "related_change": "PR-46",
+        "related_paths": [
+          "core/router.py"
+        ],
+        "relationship_kind": "holding_lane",
+        "requires_human_ack": false
+      },
+      {
+        "acting_position": 3,
+        "confidence": "supported",
+        "evidence_kind": "structural",
+        "ordered_changes": [
+          "PR-40",
+          "PR-41",
+          "PR-44"
+        ],
+        "recommended_action": "land_in_order",
+        "related_change": null,
+        "relationship_kind": "landing_order",
+        "requires_human_ack": false
+      }
+    ],
+    "repository": {
+      "generation": 3,
+      "slug": "acme/app"
+    },
+    "schema_version": "1",
+    "state": "wait_in_line"
+  },
+  "input": {
+    "change_ref": "PR-44",
+    "impact": {
+      "branch": "main",
+      "changes": [
+        {
+          "agent": "finn",
+          "change_id": "PR-44",
+          "collision_points": [
+            {
+              "behind": "erin PR-41",
+              "line_hi": 120,
+              "line_lo": 88,
+              "path": "core/router.py",
+              "symbol": "route_request"
+            }
+          ],
+          "conflict_points": [],
+          "contested_with": [],
+          "dampened_with": [],
+          "depends_on_changing": [],
+          "head_sha": "9988aabbcc",
+          "impact": [],
+          "impact_count": 0,
+          "is_draft": false,
+          "label": "finn PR-44",
+          "merge_conflict_likely": false,
+          "paths": [
+            "core/router.py"
+          ],
+          "queued_behind": [
+            "gwen PR-46"
+          ],
+          "queued_behind_paths": [
+            "core/router.py"
+          ],
+          "serialize_behind": [
+            "erin PR-41"
+          ],
+          "shared_foundation": [],
+          "unknown_paths": [],
+          "verdict": "serialize"
+        },
+        {
+          "agent": "erin",
+          "change_id": "PR-41",
+          "head_sha": "e41",
+          "label": "erin PR-41",
+          "paths": [
+            "core/router.py"
+          ],
+          "verdict": "clear"
+        },
+        {
+          "agent": "me",
+          "change_id": "PR-40",
+          "head_sha": "e40",
+          "label": "me PR-40",
+          "paths": [
+            "core/router.py"
+          ],
+          "verdict": "clear"
+        },
+        {
+          "agent": "gwen",
+          "change_id": "PR-46",
+          "head_sha": "e46",
+          "label": "gwen PR-46",
+          "paths": [
+            "core/router.py"
+          ],
+          "verdict": "clear"
+        }
+      ],
+      "clusters": [
+        {
+          "agents": [
+            "me PR-40",
+            "erin PR-41",
+            "finn PR-44"
+          ],
+          "changes": [
+            "PR-40",
+            "PR-41",
+            "PR-44"
+          ],
+          "cluster_id": 40,
+          "hotspots": [
+            "core/router.py"
+          ],
+          "size": 3,
+          "suggested_order": [
+            "me PR-40",
+            "me PR-40",
+            "erin PR-41",
+            "finn PR-44"
+          ],
+          "verdict": "serialize"
+        }
+      ],
+      "repo": "acme/app"
+    },
+    "kwargs": {
+      "ack": {
+        "label_present": false,
+        "prior_confirmed": true,
+        "prior_hash": null
+      },
+      "base_sha": "base2222cccc",
+      "evaluated_at": "2026-07-21T09:10:00Z",
+      "graph_source_sha": "graph2222cccc",
+      "head_matches": true,
+      "policy_version": "detector-2026.07.1",
+      "repository_generation": 3
+    }
+  }
+}

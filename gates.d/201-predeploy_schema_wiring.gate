@@ -1,0 +1,3 @@
+# Veripsa release gate (auto-discovered). One gate per file. register_gate is defined in run_gates.sh.
+# Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail]
+register_gate "tests/test_predeploy_schema_wiring.py" "PREDEPLOY SCHEMA-APPLY WIRING GATE: PASS" "predeploy schema generation wiring" "the shell, mandatory statement/lock bounds, deterministic manifest helper, generation marker, session lock, Docker image, Render preDeployCommand, and OWNER_DSN secret stub stay connected" "a missing lock timeout, rename, image asset, marker decision, psql binary, Render wire, or OWNER_DSN stub fails before deploy-time DDL can silently freeze live worker traffic" 14

@@ -1,0 +1,4 @@
+# Veripsa release gate (auto-discovered). One gate per file -> two PRs adding gates add two
+# FILES, never a shared line -> no false merge conflict on registration. register_gate is
+# defined in run_gates.sh. Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail]
+register_gate "tests/test_rename_coordinate_orphan.py" "RENAME-COORDINATE-ORPHAN GATE: PASS" "rename coordinate orphan" "rename coordinate orphan (an owner/repo RENAME is detected by the stable repository.id + the orphaned coordinate is MIGRATED old→new, dedup-keeping the fresher; the perpetual graph_stale orphan is healed, no ghost rows)" "rename coordinate orphan (a missed repo/owner rename can orphan the graph coordinate and page graph_stale forever; stable repository identity migrates it)" 16

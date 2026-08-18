@@ -1,0 +1,4 @@
+# Veripsa release gate (auto-discovered). One gate per file -> two PRs adding gates add two
+# FILES, never a shared line -> no false merge conflict on registration. register_gate is
+# defined in run_gates.sh. Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail]
+register_gate "tests/test_godfile_split.py" "GODFILE-SPLIT GATE: PASS" "god-file split" "god-file split (a big, churny, LOW-fan-in file is flagged basis='god_file' with its symbol count and the PR comment recommends splitting it citing the symbols; a foundation still fires on fan-in; a tiny file is not flagged; advisory + content-free)" "god-file split signal (Veripsa flags a server.py-class file — many symbols × churn, not fan-in — as a split candidate)" 20

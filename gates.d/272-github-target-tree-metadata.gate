@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# Git tree mode proof: incremental extraction must distinguish regular files
+# from symlinks/submodules before materializing target-SHA bytes.
+register_gate "tests/test_github_target_tree_metadata.py" "GITHUB TARGET TREE METADATA GATE: PASS" "github target-tree mode proof" "The target-SHA Git Trees reader retains only bounded path/mode/type metadata and marks truncated, malformed, or over-cap evidence incomplete." "Regular and executable files are distinguishable from symlinks and submodules, missing paths stay explicit, refs are URL-quoted, and no source/blob body enters the proof." 8

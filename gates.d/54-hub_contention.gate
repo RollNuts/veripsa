@@ -1,0 +1,4 @@
+# Veripsa release gate (auto-discovered). One gate per file -> two PRs adding gates add two
+# FILES, never a shared line -> no false merge conflict on registration. register_gate is
+# defined in run_gates.sh. Format: register_gate <test> <marker> <name> <ok_blurb> <desc> [tail]
+register_gate "tests/test_hub_contention.py" "HUB CONTENTION GATE: PASS" "hub dampening" "hub dampening (hub PR no longer explodes; direct collision still serializes; real coupling still warns)" "hub dampening (a popular shared file must NOT flag a touching PR as colliding with every importer)" 16
