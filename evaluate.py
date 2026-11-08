@@ -1,26 +1,19 @@
 #!/usr/bin/env python3
-"""Veripsa — evaluate it on YOUR repo BEFORE you install (try-before-you-buy · content-free · $0).
+"""Veripsa — compare current source structure with historical Git co-change locally.
 
-The honest question a buyer asks: "will Veripsa's warnings actually point at real entanglement in OUR code,
-or is it noise?" Answer it for free, on your own history, WITHOUT installing anything and WITHOUT sending us a
-single line of code. This reads your repo's code graph (paths + edges only) and its git co-change history
-LOCALLY, and prints a SHAREABLE report you can hand to your team.
-
-WHAT IT PROVES: the file pairs Veripsa would flag as coupled (its code-graph adjacency — imports, cross-file
-calls, shared schema/config) genuinely co-change in your history far more than chance — AND more than mere
-folder co-location (the hard control). The CROSS-DIRECTORY lift is the differentiated proof: entanglement a
-folder/text heuristic is blind to, that only the graph sees. (This is the exact signal the GitHub App warns on
-before a merge.)
-
-WHAT IT DOES NOT PROVE (printed, always): rework-hours-saved. That needs a deployed A/B over real PRs. This
-proves the SIGNAL is real on YOUR code — the precondition for any effect. We don't claim more than we show.
+The evaluator parses local source to build a structural graph, then compares whether its file pairs
+co-changed in local Git history against sampled random controls. This is a retrospective association on
+one checkout, not a held-out prediction or evidence that individual pull requests are safe to merge.
+It does not establish causal impact or rework-hours-saved. The project-hosted GitHub App remains suspended.
 
 Usage:
     python3 evaluate.py /path/to/your/repo [/another/repo ...]        # print the report
     python3 evaluate.py /path/to/your/repo --out veripsa-report.md    # also write a shareable markdown file
 
-Content-free: reads paths + `git log --name-only`; never file contents; nothing leaves your machine.
-Exit code 0 if the signal is real on every repo, 1 if any is weak (so it doubles as a CI/pre-sales check).
+The content-free report contains aggregate metadata, not source bodies. Source is parsed locally;
+`git log --name-only` supplies historical filenames. No source is uploaded. Review console diagnostics
+before sharing them, because they can contain local checkout paths.
+Exit 0 if every applicable repo passes the configured thresholds, or if all are N/A; 1 if any is weak.
 """
 from __future__ import annotations
 
@@ -136,16 +129,20 @@ def _report_md(verdicts: list) -> str:
     L.append("# Veripsa — does its signal track real coupling in your code?")
     L.append("")
     if not applic:
-        head = "N/A — needs a multi-directory codebase (every repo given was too small/flat to evaluate)"
+        head = "N/A — insufficient cross-directory pairs or control co-change for every repo"
     elif len(real) == len(applic):
         head = f"SIGNAL IS REAL ✓ ({len(real)}/{len(applic)} applicable repos)"
     else:
         head = f"WEAK on some — see per-repo notes ({len(real)}/{len(applic)} applicable repos real)"
-    L.append(f"**Verdict: {head}**" + (f"  ·  {na} repo(s) N/A (too small/flat)" if na else ""))
+    L.append(f"**Verdict: {head}**" + (f"  ·  {na} repo(s) N/A (insufficient pairs/control co-change)" if na else ""))
     L.append("")
-    L.append("Veripsa warns, before a merge, when your change's code-graph neighborhood meets another in-flight "
-             "change. This evaluates — on your own git history, content-free — whether the pairs it flags as "
-             "coupled actually co-change more than chance, and more than living in the same folder.")
+    L.append("This retrospective check extracts a graph from the current source checkout, then compares "
+             "historical co-change of its coupled file pairs with sampled random controls. The content-free "
+             "report contains aggregate metadata; source is parsed locally and is not uploaded.")
+    L.append("")
+    L.append("The legacy `SIGNAL IS REAL` label means the configured retrospective thresholds passed. "
+             "It is not a prediction of future PR outcomes. Same-directory co-location is context only, "
+             "not a pass criterion. The project-hosted GitHub App remains suspended.")
     for v in verdicts:
         L.append("")
         L.append(f"## `{v['repo']}` — {v['files']} files · {v['commits']} commits · {v['pairs']} coupled pairs "
@@ -153,21 +150,18 @@ def _report_md(verdicts: list) -> str:
         L.append("")
         if v.get("units"):
             u = v["units"]
-            L.append(f"**Veripsa Units (provisional meter): ~{u['units']:,}**  "
+            L.append(f"**Experimental code-size/structure diagnostic: ~{u['units']:,} Units**  "
                      f"— {u['loc']:,} in-scope LOC, entanglement premium ×{u['premium']:g}. "
-                     "This is what you'd be metered on. It's anchored to in-scope lines of code and lifted by how "
-                     "entangled your code is (cross-file and cross-substrate coupling) — the very thing Veripsa "
-                     "flags before a merge. Meter is **provisional** (coefficients still being calibrated from "
-                     "real usage); the number can shift as we tune it.")
+                     "This experimental local diagnostic can change with the implementation. "
+                     "It is not an active hosted-service plan, price, or billing commitment.")
             L.append("")
         if not v["applicable"]:
             # too few cross-dir pairs for a meaningful lift → honest N/A, never a fragile/inf number.
-            L.append(f"**N/A for this repo.** Only {v['pairs_x']} cross-directory coupled pair(s) — too few to "
-                     "measure a meaningful lift. Veripsa's differentiated signal (entanglement across directories "
-                     "that folder/text heuristics can't see) needs a **multi-directory codebase**; a small or flat "
-                     "single-package repo simply doesn't have the cross-directory coupling to evaluate. This is not "
-                     "a weak result — it's the wrong repo shape for the differentiated proof. Try it on a larger or "
-                     "multi-module repo.")
+            reason = (f"Only {v['pairs_x']} cross-directory coupled pair(s), below the minimum of {_MIN_X_PAIRS}."
+                      if v['pairs_x'] < _MIN_X_PAIRS else
+                      "The sampled cross-directory control has no observed co-change, so a finite lift is unavailable.")
+            L.append(f"**N/A for this repo.** {reason} Try a **multi-directory codebase** with meaningful Git "
+                     "history. N/A is not a positive finding, even though an N/A-only run exits 0.")
             continue
         # Moat discipline: emit ONLY the final multiplier — never the raw coupled/random rates together.
         # A reader who sees both rates AND the ratio can recover the formula (lift = coupled/random).
@@ -175,26 +169,25 @@ def _report_md(verdicts: list) -> str:
         L.append("| signal | multiplier vs random |")
         L.append("|---|---|")
         L.append(f"| ever co-change | **{_lift(v['rand_lift'])} stronger than random** |")
-        L.append(f"| **cross-directory** (folders are blind) | **{_lift(v['cross_lift'])} stronger than random** |")
-        L.append(f"| same-dir co-location (hard control) | _context only_ |")
+        L.append(f"| **cross-directory** | **{_lift(v['cross_lift'])} stronger than random** |")
+        L.append(f"| same-dir co-location | _context only; not a pass criterion_ |")
         L.append("")
         bt = v["by_type"]
         L.append("By coupling type (ever co-change): " +
                  " · ".join(f"{t} {_pct(bt[t][0])} (n={bt[t][1]})" for t in ("import", "call", "schema", "config")))
         L.append("")
-        L.append(f"**The differentiated proof:** the cross-directory pairs Veripsa flags co-change "
-                 f"**{_lift(v['cross_lift'])}** more than random cross-directory pairs — entanglement a folder or "
-                 f"text heuristic cannot see. "
-                 + ("Signal is real on this repo ✓." if v["signal_is_real"]
-                    else "Signal is weak here (didn't clear the bar) — tell us; it usually means a graph-coverage gap for this stack."))
+        L.append(f"**Observed association:** the cross-directory coupled pairs have an ever-co-change rate "
+                 f"**{_lift(v['cross_lift'])}** that of sampled random cross-directory pairs in this history. "
+                 + ("The configured retrospective thresholds passed." if v["signal_is_real"]
+                    else "The configured thresholds did not pass. Coverage, history, sampling, or weak association "
+                         "may contribute; this report does not establish a cause."))
     L.append("")
-    L.append("> **Honest boundary.** This proves the warning SIGNAL tracks real coupling on your history "
-             "(the precondition for effect) and beats folder co-location. It does NOT prove rework-hours-saved "
-             "— that needs a deployed A/B over real PRs. Veripsa records what's heading to your protected branch "
-             "and who reserved what; it does not assert correctness.")
+    L.append("> **Honest boundary.** This compares current graph structure with past co-change; it is not a "
+             "held-out predictive evaluation. It does NOT prove rework-hours-saved, causal impact, PR correctness, "
+             "or merge safety. The observed association may differ on another checkout or repository.")
     L.append("")
-    L.append("<sub>Generated locally by `evaluate.py` — content-free (paths + git co-change only); no code left "
-             "your machine.</sub>")
+    L.append("<sub>Generated locally by `evaluate.py` — source parsed locally, Git history read locally, "
+             "content-free report; no source uploaded. Review console logs for local paths before sharing.</sub>")
     return "\n".join(L)
 
 
@@ -239,7 +232,7 @@ def main(argv: list) -> int:
     # no coefficients shown — the formula stays internal/tunable).
     for v in verdicts:
         if v.get("units"):
-            print(f"\nVeripsa Units (provisional meter): ~{v['units']['units']:,}  "
+            print(f"\nExperimental code-size/structure diagnostic: ~{v['units']['units']:,} Units  "
                   f"[{v['repo']}: {v['units']['loc']:,} in-scope LOC × premium {v['units']['premium']:g}]")
     if out:
         with open(out, "w") as fh:
