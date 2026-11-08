@@ -9,9 +9,10 @@ Use this page for Veripsa Core support and issue-routing.
 
 ## Product support
 
-For install, dashboard, plan, or first-run questions, start at:
+For source and offline-evaluation questions, start with these repository docs.
+Hosted install, dashboard, and plan guidance requires an explicit future
+resumption notice; the former product domain is not a current support channel.
 
-- https://veripsa.com
 - `docs/FIRST_RUN.md`
 - `docs/LOW_FRICTION_TRIAL.md`
 - `docs/TROUBLESHOOTING.md`

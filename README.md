@@ -17,10 +17,10 @@ and `main` breaks anyway. Veripsa Core watches the traffic **between open pull
 requests** while there is still time to coordinate, and reports it as a GitHub
 check and — when there is traffic worth briefing — a PR comment.
 
-This repository contains the engine and webhook runtime. Public product and
-trust information is available at [veripsa.com](https://veripsa.com); the site
-must not be treated as an active install path while the suspension notice above
-is in effect.
+This repository contains the engine and webhook runtime. Start with the
+[offline evaluator](#offline-evaluation) to inspect the signal locally. Product
+scope is recorded in [`docs/PRODUCT_FACTS.md`](./docs/PRODUCT_FACTS.md); security
+and data boundaries are documented in [`SECURITY.md`](./SECURITY.md).
 
 ---
 
@@ -134,51 +134,73 @@ blind the analysis or to hold ready work unnecessarily.
 
 ---
 
-## Install and first PR (when the hosted service is active)
+## Hosted service and reference docs
 
-The following flow applies only after the hosted service is explicitly resumed:
+The hosted GitHub App remains suspended. This repository does not currently
+provide an active install flow or a hosted-service availability promise. A
+future resumption must be announced explicitly with its deployment and data
+handling details. The former product domain now serves unrelated content and
+is not a product, installation, privacy, or support reference for this snapshot.
 
-1. Visit [veripsa.com](https://veripsa.com) and follow **Install on GitHub**.
-2. Select one repository first.
-3. Leave branch protection and rulesets unchanged during the observation window.
-4. Open or push to a pull request on a tracked branch.
-5. Read the Veripsa check. A clean PR may be check-only; a comment appears when
-   there is traffic worth briefing.
-6. Make the check required only after your team has reviewed enough examples on
-   its own repository.
+For the source snapshot's documented boundaries, see:
 
-See:
-
-- [`docs/LOW_FRICTION_TRIAL.md`](./docs/LOW_FRICTION_TRIAL.md) for the selected-
-  repository trial and seven-day evidence table.
-- [`docs/FIRST_RUN.md`](./docs/FIRST_RUN.md) for first-run behavior, signal
-  meanings, and the optional agent rule.
-
-Installing the GitHub App does not create a Veripsa user account or collect an
-email address. The service retains content-free GitHub and operational
-identifiers needed for the product; some identifiers may be personal data under
-applicable law. See the [Privacy Policy](https://veripsa.com/privacy) for the
-current data categories, retention, uninstall, and account-erasure behavior.
-
-Veripsa Core is free while in early access, with fair-use limits. Direct checkout
-is not part of the active launch path. If paid plans are introduced later, the
-expected billing path is GitHub Marketplace.
+- [`docs/PRODUCT_FACTS.md`](./docs/PRODUCT_FACTS.md) — scope, signals, enforcement,
+  and historical product posture.
+- [`SECURITY.md`](./SECURITY.md) — security reporting, source and metadata
+  handling, retention, and supported versions.
+- [`SUPPORT.md`](./SUPPORT.md) — support routing and safe report contents.
+- [`docs/FIRST_RUN.md`](./docs/FIRST_RUN.md) and
+  [`docs/LOW_FRICTION_TRIAL.md`](./docs/LOW_FRICTION_TRIAL.md) — reference behavior
+  for a future hosted trial; these documents do not establish current availability.
 
 ---
 
 ## Offline evaluation
 
-To evaluate the structural signal on a local repository without installing the
-GitHub App or transmitting repository contents:
+Use **Git and Python 3.12** (the version used by public CI). For a first run on
+a Python repository, the evaluator works with the Python standard library;
+there is no package installation or GitHub App setup step:
 
 ```bash
-python3 evaluate.py /path/to/your/repo
-python3 evaluate.py /path/to/your/repo --out veripsa-report.md
+git clone https://github.com/RollNuts/veripsa.git
+cd veripsa
+python3.12 -m venv .venv
+. .venv/bin/activate
+python evaluate.py /path/to/your/repo --out veripsa-report.md
 ```
 
-The script uses local file paths and `git log` co-change history. It does not
-retain or transmit source file contents. It exits `0` when the measured signal
-beats both random and same-folder baselines on the supplied repositories.
+The activation command above is for a POSIX shell. Supply a local Git checkout
+with its history; the evaluator uses local source structure and `git log`
+co-change history. It does not transmit repository contents. Review the report
+and console logs before sharing them: they can identify the repository and
+local checkout paths.
+
+Python parsing uses the standard library. Non-Python language grammars and
+some configuration parsing require optional dependencies; without them,
+coverage is reduced. The complete runtime manifest is
+[`requirements.txt`](./requirements.txt), whose comments explain the required
+`--no-deps` installation strategy. The minimal first run above does not establish
+full multi-language coverage.
+
+### Interpreting the result
+
+The report compares structural coupling against random and same-folder
+baselines, including a cross-directory comparison. It measures whether the
+signal tracks historical co-change on the supplied repository; it does not
+prove a change is correct, safe to merge, or will save rework.
+
+- **Signal is real:** the applicable repository beats the evaluator's baseline
+  thresholds. Exit status is `0` only if every applicable repository passes.
+- **Weak:** an applicable repository does not meet those thresholds. Exit status
+  is `1` if any applicable repository is weak.
+- **N/A:** a small, flat, or history-poor repository cannot support the
+  comparison. A run containing only N/A repositories also exits `0`; this is
+  not a positive result. The cross-directory comparison requires at least 20
+  coupled pairs and a nonzero random baseline.
+
+For example, a small pricing service can produce N/A rather than evidence of
+a useful signal. Use a repository with meaningful history across multiple
+directories for a substantive evaluation.
 
 ---
 
@@ -226,7 +248,6 @@ Apache 2.0.
 
 - [Support guide](./SUPPORT.md) — support metadata, issue routing, and security
   boundaries.
-- [Marketing site, install, and free-access terms](https://veripsa.com).
 - Public issues belong in this repository's issue tracker. Do not file security
   reports publicly.
 - [Security disclosures](./SECURITY.md).

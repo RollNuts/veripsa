@@ -21,8 +21,10 @@ This reduces both risks: the technical blast radius is one repository, and the w
 
 ## Install
 
-1. Open `https://veripsa.com`.
-2. Choose **Install on GitHub**.
+1. Wait for an explicit service-resumption notice that identifies the supported
+   installation location and deployed version. The former product domain is not
+   a current installation location.
+2. Follow that notice to install the GitHub App.
 3. Select the repositories Veripsa Core should watch. For a first trial, choose one repository instead of all repositories.
 4. Open or update a pull request on a tracked branch.
 
