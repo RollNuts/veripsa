@@ -1300,6 +1300,7 @@ def build_graph(root, universe_paths=None, repo=None):
         root,
         source_files,
         incomplete_paths_out=incomplete_paths,
+        rust_language=langs.get("rust"),
     )
     nodes.extend(tauri_nodes)
     edges.extend(tauri_edges)

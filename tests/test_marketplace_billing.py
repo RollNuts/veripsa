@@ -387,10 +387,10 @@ def main():
     add("coverage(free, line=0) → over_by = file_count (over the plan)",
         cov_over.get("over_by") == cov_over.get("file_count") and cov_over.get("over_by") >= 1)
     _nl = _render.coverage_nudge_line(cov_over)
-    add("nudge(over) → an honest early-access limits line (content-free: percent + plan label, no raw count)",
+    add("nudge(over) → coverage record and suspended-service status (content-free: percent + plan label, no raw count)",
         isinstance(_nl, str)
-        and "Plan & limits" in _nl
-        and "early-access" in _nl
+        and "Source and service status" in _nl
+        and "project-hosted service is suspended" in _nl
         and "%" in _nl
         and "Upgrade" not in _nl
         and "analyzed files" not in _nl)

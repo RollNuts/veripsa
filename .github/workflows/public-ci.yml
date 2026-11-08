@@ -27,14 +27,26 @@ jobs:
       - name: Enforce public boundary
         run: python3 scripts/public_snapshot_gate.py
 
-      - name: Install focused runtime dependency
-        run: python3 -m pip install --no-deps 'psycopg2-binary>=2.9,<2.10'
+      - name: Install focused runtime dependencies
+        run: >-
+          python3 -m pip install --no-deps
+          'psycopg2-binary>=2.9,<2.10'
+          'tree-sitter==0.23.2'
+          'tree-sitter-rust==0.21.2'
+          'tree-sitter-typescript==0.23.2'
 
       - name: Scan credential and local-path hygiene
         run: python3 tests/test_secret_hygiene.py
 
       - name: Compile Python sources
         run: python3 -m compileall -q .
+
+      - name: Check Tauri imports and inactive-service references
+        run: |
+          python3 -c 'import code_graph_extract as X; assert {"rust", "typescript", "tsx"} <= set(X._ts_languages())'
+          python3 tests/test_tauri_command_contract.py
+          python3 tests/test_external_probe_target.py
+          python3 tests/test_coverage_percent.py
 
       - name: Run credential lifecycle leak test
         run: python3 tests/test_auth_lifecycle.py

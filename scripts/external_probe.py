@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Read-only external probe using a neutral example repository fixture.
+"""Read-only external probe for an explicitly configured deployment.
+
+The project-hosted service is suspended. This script preserves the deployment
+reference contract; it has no default target. An operator must supply both
+`APP_URL` and `EXPECTED_PLATFORM_SHA` for a deployment they intend to inspect.
 
 The release lane's forward smoke runs on the same self-hosted runner that
 mutates Render, so it must not be the only observation point. This probe is a
@@ -28,7 +32,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-APP_URL = os.environ.get("APP_URL", "https://veripsa.com").rstrip("/")
+APP_URL = os.environ.get("APP_URL", "").strip().rstrip("/")
 EXPECTED_PLATFORM_SHA = os.environ.get("EXPECTED_PLATFORM_SHA", "").strip().lower()
 REQUEST_TIMEOUT_SECONDS = 20
 VERSION_PATH = "/api/version"
@@ -179,6 +183,12 @@ def main() -> int:
         print(
             "::error::external probe must run without production secrets; "
             f"found {', '.join(leaked)} in the environment"
+        )
+        return 2
+    if not APP_URL:
+        print(
+            "::error::APP_URL must explicitly name the deployment to probe; "
+            "the project-hosted service is suspended and there is no default target"
         )
         return 2
     try:
