@@ -157,6 +157,11 @@ For the source snapshot's documented boundaries, see:
 
 ## Offline evaluation
 
+**Want to see the output first?** Follow the
+[reproducible Flask example](./docs/OFFLINE_EXAMPLE.md): a pinned public checkout,
+standard-library Python, and the observed report measurements. No account token
+or GitHub App is needed.
+
 Use **Git and Python 3.12** (the version used by public CI). For a first run on
 a Python repository, the evaluator works with the Python standard library;
 there is no package installation or GitHub App setup step:
