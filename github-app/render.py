@@ -604,10 +604,8 @@ def cleared_comment_body(branch: str = "main") -> str:
     )
 
 
-# The plan/limits target. ONE place for the URL so fair-use copy never scatters it.
-# Veripsa Core is GitHub App first and free while in early access. Future paid billing is expected through
-# GitHub Marketplace, not a direct Paddle checkout.
-LIMITS_URL = "https://veripsa.com/pricing"
+# The public source explains the suspended hosted-service status; it is not a pricing or install flow.
+SOURCE_STATUS_URL = "https://github.com/RollNuts/veripsa#hosted-service-and-reference-docs"
 
 
 def coverage_nudge_line(coverage: dict | None) -> str | None:
@@ -616,7 +614,7 @@ def coverage_nudge_line(coverage: dict | None) -> str | None:
     `coverage` is core.account_coverage_surface(): {plan, file_limit, file_count, over_by, near}. Returns ONE
     GitHub-markdown line, or None when there is nothing to nudge — under the line, unlimited (Enterprise / an
     unmapped paid plan → file_limit is None: NEVER nudge), or a missing/garbled surface. ADVISORY: the
-    line states a fact (the codebase is past the plan's analyzed-file allowance) and points to plan/limit details; it
+    line states the recorded coverage and points to the public source's hosted-service status; it
     never blocks a merge. Content-free + PO 2026-06-19 "ユーザーに見せるのは%だけ": shows a coverage PERCENTAGE + the
     plan label only — never a raw file/Unit count (the count and the internal billing metric stay private — moat),
     never a path or a body. The App appends
@@ -639,15 +637,15 @@ def coverage_nudge_line(coverage: dict | None) -> str | None:
         # over_by>0 ⇒ count>limit ⇒ Veripsa covers <100% of the codebase. Show the COVERAGE % (how much of their
         # code is watched), never the raw count/limit (those + the internal billing metric stay private — moat).
         covered = max(1, min(99, round(limit / count * 100))) if count > 0 else 0
-        return (f"📈 Veripsa is covering about **{covered}%** of your codebase on the **{plan}** plan — the rest "
-                f"isn't watched yet. [Plan & limits]({LIMITS_URL}) explains the free early-access band, or exclude "
-                f"files you don't need Veripsa to watch (generated code, vendored deps). Advisory; your merges are "
-                f"never blocked.")
+        return (f"📈 Recorded coverage is about **{covered}%** of your codebase on the **{plan}** plan. "
+                f"[Source and service status]({SOURCE_STATUS_URL}). The project-hosted service is suspended. "
+                f"Advisory; your merges are never blocked.")
     if near:
         # near the limit but under it: show how full the plan is, as a % (never the raw count/limit).
         used = min(99, round(count / limit * 100)) if limit > 0 else 0
-        return (f"📈 You're at about **{used}%** of your **{plan}** plan's coverage. "
-                f"[Plan & limits]({LIMITS_URL}) explains the free early-access band — advisory, never blocks.")
+        return (f"📈 Recorded usage is about **{used}%** of your **{plan}** plan's coverage. "
+                f"[Source and service status]({SOURCE_STATUS_URL}). The project-hosted service is suspended. "
+                f"Advisory; your merges are never blocked.")
     return None
 
 

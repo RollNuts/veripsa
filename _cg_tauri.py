@@ -10,7 +10,8 @@ side can break the other. This substrate emits a shared contract key so Veripsa 
 see that cross-directory, cross-language coupling without reading or storing bodies.
 
 Precision discipline:
-  - command definitions require the explicit `#[tauri::command]` attribute;
+  - command definitions require `#[tauri::command]`, or a same-module explicit
+    import of that attribute when the Rust grammar is available;
   - frontend references require `invoke` imported from the official Tauri API module;
   - references are literal command names only, and only to locally-defined commands;
   - duplicate command definitions/references remain as explicitly ambiguous,
@@ -68,9 +69,150 @@ def _contract_id(name: str) -> str:
     return f"tauri_command::{name}"
 
 
-def _command_defs(text: str) -> set[str]:
-    text = _strip_c_like_comments(text)
-    return {m.group(1) for m in _COMMAND_DEF_RE.finditer(text)}
+def _rust_path(node, source: bytes) -> tuple[str, ...] | None:
+    """Read a use/attribute path, without resolving reexports or crate aliases."""
+    if node is None:
+        return ()
+    if node.type in {"identifier", "crate", "self", "super"}:
+        name = source[node.start_byte:node.end_byte].decode("utf-8")
+        return (name,) if re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", name) else None
+    if node.type == "scoped_identifier":
+        path = _rust_path(node.child_by_field_name("path"), source)
+        name = _rust_path(node.child_by_field_name("name"), source)
+        if path is not None and name is not None:
+            return path + name
+    return None
+
+
+def _rust_use_bindings(node, source: bytes, prefix=()) -> list[tuple[str, tuple]] | None:
+    """Flatten explicit use trees. Unknown/glob imports cannot justify bare attributes."""
+    if node is None:
+        return None
+    if node.type in {"use_list", "scoped_use_list"}:
+        if node.type == "scoped_use_list":
+            path = _rust_path(node.child_by_field_name("path"), source)
+            if path is None:
+                return None
+            prefix += path
+            node = node.child_by_field_name("list")
+        bindings = []
+        for child in node.named_children:
+            if child.type in {"line_comment", "block_comment"}:
+                continue
+            nested = _rust_use_bindings(child, source, prefix)
+            if nested is None:
+                return None
+            bindings.extend(nested)
+        return bindings
+    alias = None
+    if node.type == "use_as_clause":
+        alias_path = _rust_path(node.child_by_field_name("alias"), source)
+        if alias_path is None or len(alias_path) != 1:
+            return None
+        alias = alias_path[0]
+        node = node.child_by_field_name("path")
+    path = _rust_path(node, source)
+    if not path:
+        return None
+    path = prefix + path
+    if path[-1] == "self":
+        path = path[:-1]
+    if not path or alias == "_":
+        return []
+    return [(alias or path[-1], path)]
+
+
+def _rust_scope_commands(scope, source: bytes) -> set[str]:
+    """Resolve direct imports separately for each source_file/declaration_list scope."""
+    bindings: dict[str, list[tuple]] = {}
+    trusted = set()
+    blocked = set()
+    unknown_import = False
+    tauri_shadowed = False
+    attributes = []
+    for child in scope.named_children:
+        if child.type == "attribute_item":
+            attributes.append(child)
+            continue
+        if child.type in {"line_comment", "block_comment"}:
+            continue
+        if child.type == "use_declaration":
+            uses = _rust_use_bindings(child.child_by_field_name("argument"), source)
+            if uses is None:
+                unknown_import = True
+            else:
+                # Attributed/visible imports can be conditional or reexports. They
+                # still participate in conflicts, but do not grant a bare attribute.
+                direct = not attributes and not any(
+                    n.type == "visibility_modifier" for n in child.named_children
+                )
+                for alias, path in uses:
+                    bindings.setdefault(alias, []).append(path)
+                    if direct and path == ("tauri", "command"):
+                        trusted.add(alias)
+        name = child.child_by_field_name("name")
+        if name is not None:
+            name_text = source[name.start_byte:name.end_byte].decode("utf-8")
+            if child.type == "macro_definition":
+                blocked.add(name_text)
+            if name_text == "tauri" and child.type in {
+                "mod_item", "struct_item", "enum_item", "union_item", "type_item",
+            }:
+                tauri_shadowed = True
+        if child.type == "extern_crate_declaration":
+            if any(source[n.start_byte:n.end_byte] == b"tauri"
+                   for n in child.named_children):
+                tauri_shadowed = True
+        attributes = []
+    if any(path != ("tauri",) for path in bindings.get("tauri", [])):
+        tauri_shadowed = True
+    aliases = {
+        alias for alias in trusted - blocked
+        if bindings[alias] == [("tauri", "command")]
+    } if not (unknown_import or tauri_shadowed) else set()
+
+    commands = set()
+    attributes = []
+    for child in scope.named_children:
+        if child.type == "attribute_item":
+            attributes.append(child)
+            continue
+        if child.type in {"line_comment", "block_comment"}:
+            continue
+        if child.type == "function_item":
+            for item in attributes:
+                attribute = next((n for n in item.named_children if n.type == "attribute"), None)
+                if attribute is None or not attribute.named_children:
+                    continue
+                path = _rust_path(attribute.named_children[0], source)
+                if path and len(path) == 1 and path[0] in aliases:
+                    name = _rust_path(child.child_by_field_name("name"), source)
+                    if name:
+                        commands.add(name[0])
+                    break
+        elif child.type == "mod_item":
+            body = child.child_by_field_name("body")
+            if body is not None and body.type == "declaration_list":
+                # Rust module imports are not inherited by child/sibling modules.
+                commands.update(_rust_scope_commands(body, source))
+        attributes = []
+    return commands
+
+
+def _command_defs(text: str, rust_language=None) -> set[str]:
+    # Keep qualified-attribute extraction unchanged, including nested functions.
+    # Only the new imported spellings depend on the scoped Rust AST.
+    qualified = {m.group(1) for m in _COMMAND_DEF_RE.finditer(_strip_c_like_comments(text))}
+    if rust_language is not None:
+        try:
+            from tree_sitter import Parser
+            source = text.encode("utf-8")
+            tree = Parser(rust_language).parse(source)
+            if not tree.root_node.has_error:
+                return qualified | _rust_scope_commands(tree.root_node, source)
+        except Exception:
+            pass  # Preserve the original qualified-attribute-only fallback.
+    return qualified
 
 
 def _invoke_aliases(text: str) -> tuple[set[str], set[str]]:
@@ -125,6 +267,7 @@ def _tauri_command_graph(
     root: str,
     source_files: list[tuple[str, str]],
     incomplete_paths_out=None,
+    rust_language=None,
 ) -> tuple[list, list]:
     """Backward-compatible diagnostics wrapper for Tauri contracts."""
     try:
@@ -132,6 +275,7 @@ def _tauri_command_graph(
             root,
             source_files,
             incomplete_paths_out=incomplete_paths_out,
+            rust_language=rust_language,
         )
     except Exception:
         has_rust = any(ext == _RUST_EXT for _path, ext in source_files)
@@ -150,6 +294,7 @@ def _tauri_command_graph_impl(
     root: str,
     source_files: list[tuple[str, str]],
     incomplete_paths_out=None,
+    rust_language=None,
 ) -> tuple[list, list]:
     """Return (nodes, edges) for Tauri command contracts.
 
@@ -178,7 +323,7 @@ def _tauri_command_graph_impl(
         text = _read_capped(abs_path, definition_loss, rel)
         if text is None:
             continue
-        for name in _command_defs(text):
+        for name in _command_defs(text, rust_language=rust_language):
             definers.setdefault(name, set()).add(rel)
     if definition_loss:
         for _abs_path, rel in rust_files:

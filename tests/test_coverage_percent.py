@@ -30,7 +30,9 @@ def test_over_shows_percent_not_count():
     assert line and "%" in line, line
     assert "pro" in line, line
     assert "71%" in line, line                       # 1000/1400 ≈ 71% of the codebase covered
-    assert "Plan & limits" in line, line
+    assert "[Source and service status](https://github.com/RollNuts/veripsa#hosted-service-and-reference-docs)" in line, line
+    assert "project-hosted service is suspended" in line, line
+    assert "veripsa.com" not in line and "early-access band" not in line, line
     assert "Upgrade" not in line, line
     for raw in ("1400", "1000", "400", "analyzed files"):
         assert raw not in line, (raw, line)          # %-ONLY: no raw count / limit / metric leaks
@@ -41,7 +43,9 @@ def test_near_shows_percent_not_count():
     line = coverage_nudge_line({"plan": "starter", "file_limit": 500, "file_count": 450, "over_by": 0, "near": True})
     assert line and "%" in line and "starter" in line, line
     assert "90%" in line, line                       # 450/500 = 90% of the plan used
-    assert "Plan & limits" in line, line
+    assert "[Source and service status](https://github.com/RollNuts/veripsa#hosted-service-and-reference-docs)" in line, line
+    assert "project-hosted service is suspended" in line, line
+    assert "veripsa.com" not in line and "early-access band" not in line, line
     assert "Upgrade" not in line, line
     for raw in ("450", "500", "analyzed files"):
         assert raw not in line, (raw, line)

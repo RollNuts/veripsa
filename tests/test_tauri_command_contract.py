@@ -24,6 +24,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 
 import code_graph_extract as X  # noqa: E402
+import _cg_tauri as T  # noqa: E402
 
 
 def _w(d: str, rel: str, body: str) -> None:
@@ -70,6 +71,163 @@ def _direct_code_edges_between(g: dict, a: str, b: str) -> list[dict]:
 def _has_tauri_edge(g: dict, name: str, kind: str, src_part: str) -> bool:
     dst = f"tauri_command::{name}"
     return any(src_part in src for src in _edges_to(g, dst, kind))
+
+
+def _check_rust_imports(check) -> None:
+    # The legacy path must not start accepting bare attributes without a grammar.
+    fallback = (
+        "use tauri::command;\n#[command] fn bare() {}\n"
+        "#[tauri::command] fn qualified() {}\n"
+    )
+    check(T._command_defs(fallback) == {"qualified"},
+          "(6) grammar-free fallback must remain qualified-attribute-only")
+    check(T._command_defs(fallback, object()) == {"qualified"},
+          "(6) unusable Rust grammar must preserve only qualified attributes")
+
+    rust_language = X._ts_languages().get("rust")
+    if rust_language is None:
+        print("TAURI COMMAND IMPORT CASES: SKIPPED (Rust grammar unavailable)")
+        return
+    check(T._command_defs(fallback + "fn broken(", rust_language) == {"qualified"},
+          "(6) parse errors must not enable imported bare attributes")
+    check(T._command_defs("fn outer() { #[tauri::command] fn nested() {} }", rust_language)
+          == {"nested"}, "(6) existing qualified nested-function extraction must remain unchanged")
+
+    positive = {
+        "named": "use tauri::command; #[command] fn save_file() {}",
+        "alias": "use tauri::command as tc; #[tc] fn save_file() {}",
+        "group": "use tauri::{command, State}; #[command] fn save_file() {}",
+        "nested-first": (
+            "use tauri::{command, ipc::{Channel, CommandScope}};\n"
+            "#[command] fn save_file() {}"
+        ),
+        "nested-last": (
+            "use tauri::{ipc::{Channel, CommandScope}, command};\n"
+            "#[command] fn save_file() {}"
+        ),
+        "nested-alias": (
+            "use tauri::{ipc::{Channel, CommandScope}, command as tc};\n"
+            "#[tc(rename_all = \"snake_case\")] pub async fn save_file() {}"
+        ),
+        "comments-and-lines": (
+            "use tauri::{\n /* import comment */ command as tc,\n State,\n};\n"
+            "#[tc]\n// attribute comment\npub fn save_file() {}"
+        ),
+    }
+    for label, source in positive.items():
+        check(T._command_defs(source, rust_language) == {"save_file"},
+              f"(6) explicit Rust import case failed: {label}")
+
+    negative = {
+        "no-import": "#[command] fn fake() {}",
+        "unrelated": "use other::command; #[command] fn fake() {}",
+        "local-path": "use crate::tauri::command; #[command] fn fake() {}",
+        "other-tauri-item": "use tauri::plugin::command; #[command] fn fake() {}",
+        "glob": "use tauri::*; #[command] fn fake() {}",
+        "discarded": "use tauri::command as _; #[command] fn fake() {}",
+        "reexport": "pub use tauri::command; #[command] fn fake() {}",
+        "conditional-import": "#[cfg(any())] use tauri::command; #[command] fn fake() {}",
+        "conditional-attribute": "use tauri::command; #[cfg_attr(any(), command)] fn fake() {}",
+        "conflicting-import": (
+            "use tauri::command; use other::command; #[command] fn fake() {}"
+        ),
+        "conflicting-alias": (
+            "use tauri::command as tc; use other::command as tc; #[tc] fn fake() {}"
+        ),
+        "local-macro": (
+            "use tauri::command; macro_rules! command { () => {} }\n"
+            "#[command] fn fake() {}"
+        ),
+        "local-tauri": (
+            "mod tauri {} use tauri::command; #[command] fn fake() {}"
+        ),
+        "tauri-alias-shadow": (
+            "use other as tauri; use tauri::command; #[command] fn fake() {}"
+        ),
+        "comment": "/* use tauri::command; */ #[command] fn fake() {}",
+        "string": (
+            'const DOC: &str = "use tauri::command;"; #[command] fn fake() {}'
+        ),
+        "raw-string": (
+            'const DOC: &str = r#"use tauri::command; #[command] fn ghost() {}"#;\n'
+            "#[command] fn fake() {}"
+        ),
+        "block-import": "fn setup() { use tauri::command; } #[command] fn fake() {}",
+        "macro-import": (
+            "macro_rules! setup { () => { use tauri::command; } }\n"
+            "#[command] fn fake() {}"
+        ),
+        "parse-error": "use tauri::command; #[command] fn fake( {",
+    }
+    for label, source in negative.items():
+        check(not T._command_defs(source, rust_language),
+              f"(7) unrelated/unsupported Rust import must remain silent: {label}")
+
+    scoped = {
+        "parent-does-not-leak": (
+            "use tauri::command; #[command] fn real() {}\n"
+            "mod child { #[command] fn fake() {} }"
+        ),
+        "sibling-does-not-leak": (
+            "mod a { use tauri::command; #[command] fn real() {} }\n"
+            "mod b { #[command] fn fake() {} }"
+        ),
+        "child-shadow": (
+            "use tauri::command; #[command] fn real() {}\n"
+            "mod child { use other::command; #[command] fn fake() {} }"
+        ),
+        "child-alias-shadow": (
+            "use tauri::command as tc; #[tc] fn real() {}\n"
+            "mod child { use other::command as tc; #[tc] fn fake() {} }"
+        ),
+        "child-import-does-not-leak-out": (
+            "mod child { use tauri::command as tc; #[tc] fn real() {} }\n"
+            "#[tc] fn fake() {}"
+        ),
+    }
+    for label, source in scoped.items():
+        check(T._command_defs(source, rust_language) == {"real"},
+              f"(8) Rust attribute import escaped its module: {label}")
+
+    # Exercise the public build_graph caller, not only the private AST helper.
+    imported = _build({
+        "src-tauri/src/commands.rs": (
+            "use tauri::{ipc::{Channel, CommandScope}, command as tc};\n"
+            "#[tc] pub fn imported() -> &'static str {\n"
+            '  "IMPORTED_COMMAND_BODY_SHOULD_NOT_LEAK"\n}\n'
+            'const DOC: &str = r#"use tauri::command; #[command] fn ghost() {}"#;\n'
+        ),
+        "src-tauri/src/other.rs": "#[tc] fn unrelated() {}\n",
+        "src/main.ts": (
+            "import { invoke } from '@tauri-apps/api/core';\n"
+            "invoke('imported'); invoke('unrelated'); invoke('ghost');\n"
+        ),
+    })
+    check(set(_nodes_of_kind(imported, "app_command")) == {"tauri_command::imported"},
+          "(9) build_graph must forward its Rust language without leaking file imports")
+    check(_has_tauri_edge(imported, "imported", "alters", "commands.rs")
+          and _has_tauri_edge(imported, "imported", "queries", "main.ts"),
+          "(9) imported Rust command must retain both contract edges")
+    check("IMPORTED_COMMAND_BODY_SHOULD_NOT_LEAK" not in json.dumps(imported),
+          "(9) imported command bodies must stay out of graph output")
+
+    duplicate = _build({
+        "src-tauri/src/a.rs": "use tauri::command; #[command] fn duplicated() {}\n",
+        "src-tauri/src/b.rs": "#[tauri::command] fn duplicated() {}\n",
+        "src/main.ts": "import { invoke } from '@tauri-apps/api/core'; invoke('duplicated');\n",
+    })
+    duplicate_node = _nodes_of_kind(duplicate, "app_command").get("tauri_command::duplicated")
+    duplicate_edges = (
+        _edge_records_to(duplicate, "tauri_command::duplicated", "alters")
+        + _edge_records_to(duplicate, "tauri_command::duplicated", "queries")
+    )
+    check(duplicate_node is not None
+          and (duplicate_node.get("provenance") or {}).get("ambiguous") is True,
+          "(10) imported and qualified duplicate definitions must remain ambiguous")
+    check(len(duplicate_edges) == 3
+          and all(e.get("reference_status") == "ambiguous" for e in duplicate_edges),
+          "(10) imported duplicate must retain every anchored ambiguous edge")
+    print(f"TAURI COMMAND IMPORT CASES: {len(positive) + len(negative) + len(scoped)} AST cases + 2 graph cases")
 
 
 def main() -> int:
@@ -233,6 +391,8 @@ def main() -> int:
           f"(5) pure non-Tauri repo should not mint app_command nodes; nodes={list(_nodes_of_kind(g6, 'app_command'))}")
     check(not [e for e in g6["edges"] if str(e.get("dst", "")).startswith("tauri_command::")],
           "(5) pure non-Tauri repo should not emit tauri_command edges")
+
+    _check_rust_imports(check)
 
     if failures:
         print("TAURI COMMAND CONTRACT GATE: FAIL")
