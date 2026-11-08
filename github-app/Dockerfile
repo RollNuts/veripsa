@@ -51,8 +51,8 @@ RUN pip install --no-cache-dir --no-deps \
       "tree-sitter-language-pack==0.9.1" \
       "tree-sitter-embedded-template==0.23.2" "tree-sitter-yaml==0.7.0" \
       "PyYAML>=6.0.2,<7" \
-      "pyjwt>=2.8,<3" "typing-extensions>=4,<5" \
-      "cryptography>=42,<46" "cffi>=1.17,<3" "pycparser>=2.22,<3"
+      "pyjwt>=2.8,<3" "typing-extensions>=4.13.2,<5" \
+      "cryptography>=50,<51" "cffi>=2,<3" "pycparser>=2.22,<3"
 
 # The extractor is SPLIT into root modules — ALL must be in the image. code_graph_extract imports
 # _cg_languages / _cg_schema / _cg_config / _cg_resolve AND cg_generated (the generated/vendored predicate group,

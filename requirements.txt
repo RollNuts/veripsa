@@ -71,9 +71,10 @@ PyYAML>=6.0.2,<7
 # The live GitHub App (github-app/server.py) signs its App JWT with RS256 (and export_audit.py uses
 # cryptography for signed exports). See github-app/RUNBOOK.md.
 # pyjwt floor is 2.8 (well past CVE-2022-29217 alg-confusion, fixed in 2.4.0); <3 keeps the 2.x API.
-# cryptography floor 42 is past the OpenSSL-3.x advisories bundled by older wheels; <46 matches the image.
+# cryptography 50 fixes GHSA-g6cj-pr64-35w5 PKCS7 decryption oracle and
+# includes the GHSA-jwv3-5hgf-82ww path-building fix; <51 matches the image.
 pyjwt>=2.8,<3
-typing-extensions>=4,<5
-cryptography>=42,<46
-cffi>=1.17,<3
+typing-extensions>=4.13.2,<5
+cryptography>=50,<51
+cffi>=2,<3
 pycparser>=2.22,<3
