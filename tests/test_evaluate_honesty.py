@@ -169,6 +169,28 @@ def main() -> int:
         low = md.lower()
         checks.append(("honest claims: NO overclaim words (guarantee/prevents bugs/correctness/…)",
                        not any(w in low for w in _OVERCLAIM)))
+        checks.append(("honest claims: current-checkout measurement is retrospective, not predictive",
+                       "retrospective" in low and "not a prediction" in low and "held-out" in low))
+        checks.append(("honest claims: source is parsed locally, not claimed unread",
+                       "source parsed locally" in low and "never file contents" not in low))
+        checks.append(("honest claims: no proof, folder-blindness, or weak-result diagnosis claim",
+                       all(phrase not in low for phrase in
+                           ("differentiated proof", "folders are blind", "this proves", "usually means"))))
+
+        with_units = dict(strong, units={"units": 42, "loc": 10, "premium": 4.2})
+        md_units = E._report_md([with_units])
+        checks.append(("honest claims: units value retained as local diagnostic, not active billing",
+                       "~42 Units" in md_units and "local diagnostic" in md_units
+                       and "not an active hosted-service plan" in md_units
+                       and "metered on" not in md_units))
+
+        # A zero cross-directory control can make a sufficiently large repo N/A too.
+        # Report the actual reason rather than calling its pair count too small.
+        zero_cross = E._verdict(_result(c_rate=0.60, r_rate=0.15, cx_rate=0.45, rx_rate=0.0, pairs_x=30))
+        md_zero_cross = E._report_md([zero_cross])
+        checks.append(("honest N/A: zero cross-directory control is not diagnosed as too few pairs",
+                       not zero_cross["applicable"] and "no observed co-change" in md_zero_cross
+                       and "below the minimum" not in md_zero_cross))
 
         # fragile-number lock on the APPLICABLE branch: a zero loose-random baseline must NOT divide-to-'inf×'.
         inf_case = E._verdict(_result(c_rate=0.60, r_rate=0.0, cx_rate=0.45, rx_rate=0.10))
@@ -183,6 +205,9 @@ def main() -> int:
 
         # exit-code contract: applicable-real → 0, applicable-weak → 1, N/A-only → 0, N/A+weak → 1.
         weak = E._verdict(_result(c_rate=0.16, r_rate=0.15, cx_rate=0.11, rx_rate=0.10))
+        md_weak = E._report_md([weak])
+        checks.append(("honest claims: weak result does not assign a graph-coverage cause",
+                       "does not establish a cause" in md_weak and "usually means" not in md_weak))
         na = E._verdict(_result(c_rate=0.60, r_rate=0.0, cx_rate=0.50, rx_rate=0.0, pairs_x=4, files=4, repo="na"))
         checks.append(("exit-code: applicable-real → 0", E._exit_code([strong]) == 0))
         checks.append(("exit-code: applicable-weak → 1", E._exit_code([weak]) == 1))
