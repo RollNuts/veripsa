@@ -35,10 +35,14 @@ CFGを作らないため、同一method内の異なるbranchにあるauthorizati
 - `shallow`, custom `param`, `path_names`
 - custom inflector、acronym、不規則なpluralization
 - inheritanceで提供されるcontroller action
-- resource block内に入れ子にしたnamespace/scopeのpath合成
+- resource block内に入れ子にしたnamespaceやpath付きscopeの合成
 - 明示receiver経由のroute mapper
 
-`resources`/`resource`のpath、controller、`only`、`except`はstatic valueに限定されます。それ以外のoptionが存在するdeclarationは、無視してhigh confidenceにせず全体をunresolvedにします。単純なcamelize/singularize/pluralizeでRails behavior全体を再現しません。
+`resources`/`resource`のpath、controller、`only`、`except`はstatic valueに限定されます。明示的に識別した未対応option keyがあるdeclarationは、全体をunresolvedにします。ただし、従来のmodule合成を通らないDSLには、splatや重複optionを完全に検証せずcontextを推定するheader解析の限界が残ります。今回の追加guardは、新module合成にそのcontextを引き継がせないためのものであり、旧DSL全体のheader検証を修正するものではありません。単純なcamelize/singularize/pluralizeでRails behavior全体を再現しません。
+
+resource内のmodule-only scopeは、相対的なstatic module名と直下の`resources`/`resource`だけを合成します。scope直下のcustom verb、namespace、その他のblock、member/collection内のscope、dynamic/duplicate/splat optionは未解決です。module scopeから辿れたrouteも、authorization callback、policy、tenant isolation、params data flowや脆弱性の有無を証明しません。
+
+この新module配下では、resource block内の全descendantにも重複・splatのないheaderを要求します。custom verbの対応optionは`to`/`on`/`controller`/`action`（hash-rocket形式では`on`）です。未対応option、inline endpoint block、引数付きmember/collection、nested `draw`、absolute controller pathは未解決のままにします。これは旧DSL全体のheader解析を修正したという意味ではありません。
 
 `config/routes.rb`以外のroute fileは、`draw`時のnamespace/scope inclusion contextを復元しません。そのfile内のrouteは索引に残りますが、low/unresolvedでありexecution pathへ確定接続しません。
 

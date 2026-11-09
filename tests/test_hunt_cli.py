@@ -566,7 +566,7 @@ def test_artifacts_manifest_and_single_build(work: Path) -> None:
     assert manifest["dont_write_bytecode_on_module_entry"] is H._BYTECODE_DISABLED_ON_ENTRY
     assert manifest["extractor_versions"] == {
         "rich_graph": "fixture-rich-graph-v7",
-        "ruby_rails_audit_index": "hunt-ruby-rails-v1",
+        "ruby_rails_audit_index": "hunt-ruby-rails-v2",
     }
     assert manifest["graph_schema_contract_version"] == 42
     assert manifest["node_count"] == 2

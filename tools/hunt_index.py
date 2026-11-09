@@ -52,7 +52,7 @@ _WORKER_MIXINS = frozenset(
 _SERVICE_TERMINALS = frozenset({"call", "execute", "run", "start", "schedule"})
 _MAX_RAW_EXPRESSION = 320
 _MAX_EXECUTION_PATHS = 5_000
-HUNT_INDEX_EXTRACTOR_VERSION = "hunt-ruby-rails-v1"
+HUNT_INDEX_EXTRACTOR_VERSION = "hunt-ruby-rails-v2"
 
 
 @dataclass(frozen=True)
@@ -160,6 +160,8 @@ class RouteContext:
     namespace_stack: tuple[str, ...] = ()
     resource: "ResourceContext | None" = None
     route_scope: str | None = None
+    module_scope_composable: bool = True
+    strict_subtree_headers: bool = False
 
 
 @dataclass
@@ -280,6 +282,27 @@ def _positional_arguments(argument_nodes: Iterable[Any]) -> list[Any]:
     ]
 
 
+def _explicit_route_options(
+    argument_nodes: Iterable[Any], ruby_file: RubyFile
+) -> dict[str, Any] | None:
+    """Read only explicit, unique option pairs, rejecting splats/unknown keys."""
+    result: dict[str, Any] = {}
+    for node in argument_nodes:
+        if node.type in {"hash", "bare_assoc_hash"}:
+            nested = _explicit_route_options(node.named_children, ruby_file)
+            if nested is None or set(result).intersection(nested):
+                return None
+            result.update(nested)
+        elif node.type == "pair":
+            key, value = _pair_parts(node, ruby_file)
+            if not key or key in result:
+                return None
+            result[key] = value
+        else:
+            return None
+    return result
+
+
 def _static_literal(ruby_file: RubyFile, node: Any | None) -> str | None:
     if node is None:
         return None
@@ -293,6 +316,35 @@ def _static_literal(ruby_file: RubyFile, node: Any | None) -> str | None:
             return None
         return raw[1:-1]
     return None
+
+
+def _scope_supports_module_composition(
+    ruby_file: RubyFile, arguments: list[Any], name: str | None
+) -> bool:
+    """Do not promote an older, partially understood ancestor into new coverage."""
+    positionals = _positional_arguments(arguments)
+    options = _explicit_route_options(
+        [arg for arg in arguments if arg not in positionals], ruby_file
+    )
+    if len(positionals) > 1 or options is None or set(options) - {"path", "module", "defaults"}:
+        return False
+    if "module" in options or name == "namespace":
+        module_node = options.get("module") if "module" in options else (
+            positionals[0] if positionals else None
+        )
+        module_value = _static_literal(ruby_file, module_node)
+        if module_value is None or not re.fullmatch(
+            r"[a-z_][a-z_0-9]*(?:/[a-z_][a-z_0-9]*)*", module_value
+        ):
+            return False
+    if "defaults" in options:
+        defaults = _explicit_route_options(options["defaults"].named_children, ruby_file)
+        # A literal format default does not change the controller or URL prefix.
+        if defaults is None or set(defaults) != {"format"}:
+            return False
+        if _static_literal(ruby_file, defaults["format"]) is None:
+            return False
+    return True
 
 
 def _static_array(ruby_file: RubyFile, node: Any | None) -> list[str] | None:
@@ -922,6 +974,14 @@ def _emit_resource_routes(
     arguments = _argument_nodes(node)
     positionals = _positional_arguments(arguments)
     options = _option_pairs(arguments, ruby_file)
+    explicit_options = _explicit_route_options(
+        [arg for arg in arguments if arg not in positionals], ruby_file
+    )
+    module_scope_composable = (
+        context.module_scope_composable
+        and len(positionals) == 1
+        and explicit_options is not None
+    )
     name = _static_literal(ruby_file, positionals[0]) if positionals else None
     if not name:
         reason = "resource name is dynamic or unavailable"
@@ -997,6 +1057,8 @@ def _emit_resource_routes(
                 controller_modules=context.controller_modules,
                 namespace_stack=context.namespace_stack,
                 resource=resource,
+                module_scope_composable=module_scope_composable,
+                strict_subtree_headers=context.strict_subtree_headers,
             ),
             reason,
         )
@@ -1014,6 +1076,8 @@ def _emit_resource_routes(
                 controller_modules=context.controller_modules,
                 namespace_stack=context.namespace_stack,
                 resource=resource,
+                module_scope_composable=module_scope_composable,
+                strict_subtree_headers=context.strict_subtree_headers,
             ),
             reason,
         )
@@ -1044,6 +1108,8 @@ def _emit_resource_routes(
         controller_modules=context.controller_modules,
         namespace_stack=context.namespace_stack,
         resource=resource,
+        module_scope_composable=module_scope_composable,
+        strict_subtree_headers=context.strict_subtree_headers,
     )
     return nested_context, None
 
@@ -1139,12 +1205,66 @@ def _emit_verb_route(
         _route_warning(warnings, ruby_file, node, reason)
 
 
+def _strict_subtree_header_reason(ruby_file: RubyFile, node: Any, name: str | None) -> str | None:
+    """Keep explicit-header provenance through every newly visible descendant."""
+    arguments = _argument_nodes(node)
+    positionals = _positional_arguments(arguments)
+    options = _explicit_route_options(
+        [arg for arg in arguments if arg not in positionals], ruby_file
+    )
+    if name in {"resources", "resource"}:
+        if len(positionals) != 1 or options is None:
+            return "nested resource has duplicate, splatted or unsupported arguments"
+        if any(key in options and _static_literal(ruby_file, options[key]) is None
+               for key in ("path", "controller")) or any(
+            key in options and _static_array(ruby_file, options[key]) is None
+            for key in ("only", "except")
+        ):
+            return "nested resource has dynamic route options"
+    elif name in _HTTP_METHODS:
+        if _field(node, "block") is not None:
+            return "inline route block is not composed in a strict module subtree"
+        # Hash-rocket route shorthand is distinct from keyword-only options.
+        key_node = _field(arguments[0], "key") if arguments else None
+        rocket = (
+            not positionals and arguments and arguments[0].type == "pair"
+            and key_node is not None and key_node.type in {"string", "simple_symbol"}
+        )
+        if rocket:
+            options = _explicit_route_options(arguments[1:], ruby_file)
+            target = _static_literal(ruby_file, _field(arguments[0], "value"))
+            allowed = {"on"}
+        else:
+            target = _static_literal(ruby_file, options.get("to")) if options is not None else None
+            allowed = {"to", "on", "controller", "action"}
+        if options is None or (not rocket and len(positionals) != 1) or set(options) - allowed:
+            return "custom route has duplicate, splatted or unsupported arguments/options"
+        if any(_static_literal(ruby_file, value) is None for value in options.values()):
+            return "custom route has dynamic options"
+        if target is not None and target.startswith("/"):
+            return "absolute controller target is not composed in a strict module subtree"
+    elif name in {"member", "collection"}:
+        if arguments:
+            return f"{name} arguments are not composed in a strict module subtree"
+    elif name == "draw":
+        return "nested draw context reset is not composed in a strict module subtree"
+    elif name in {"namespace", "scope"}:
+        if not _scope_supports_module_composition(ruby_file, arguments, name):
+            return "scope has duplicate, splatted or unsupported arguments/options"
+    if name in ({"resources", "resource"} | _HTTP_METHODS) and options is not None:
+        controller = _static_literal(ruby_file, options.get("controller"))
+        if controller is not None and controller.startswith("/"):
+            return "absolute controller option is not composed in a strict module subtree"
+    return None
+
+
 def _visit_route_body(
     routes: list[dict[str, Any]],
     warnings: list[WarningRecord],
     ruby_file: RubyFile,
     body: Any,
     context: RouteContext,
+    resource_declarations_only: bool = False,
 ) -> None:
     for node in body.named_children:
         if node.type == "comment":
@@ -1195,12 +1315,64 @@ def _visit_route_body(
                     "rails_route_unsupported_dsl",
                 )
                 continue
+        if context.strict_subtree_headers:
+            reason = _strict_subtree_header_reason(ruby_file, node, name)
+            if reason:
+                routes.append(
+                    _route_record(
+                        ruby_file, node, None, None, None, None, context, "low", reason
+                    )
+                )
+                _route_warning(warnings, ruby_file, node, reason)
+                continue
+        if resource_declarations_only and name not in {"resources", "resource"}:
+            reason = (
+                "only direct resource declarations are composed inside a "
+                "resource's static module scope"
+            )
+            routes.append(
+                _route_record(
+                    ruby_file, node, None, None, None, None, context, "low", reason
+                )
+            )
+            _route_warning(warnings, ruby_file, node, reason)
+            continue
         if name in _HTTP_METHODS:
             _emit_verb_route(routes, warnings, ruby_file, node, context, name)
             continue
 
         if name in {"namespace", "scope"}:
             if context.resource is not None:
+                arguments = _argument_nodes(node)
+                options = _explicit_route_options(arguments, ruby_file)
+                module_value = (
+                    _static_literal(ruby_file, options["module"])
+                    if options is not None and set(options) == {"module"}
+                    else None
+                )
+                block_body = _block_body(node)
+                if (
+                    name == "scope"
+                    and context.module_scope_composable
+                    and context.route_scope is None
+                    and block_body is not None
+                    and module_value is not None
+                    and re.fullmatch(r"[a-z_][a-z_0-9]*(?:/[a-z_][a-z_0-9]*)*", module_value)
+                ):
+                    module_parts = tuple(module_value.split("/"))
+                    child_context = RouteContext(
+                        path_prefix=context.path_prefix,
+                        controller_modules=context.controller_modules + module_parts,
+                        namespace_stack=context.namespace_stack + module_parts,
+                        resource=context.resource,
+                        module_scope_composable=True,
+                        strict_subtree_headers=True,
+                    )
+                    _visit_route_body(
+                        routes, warnings, ruby_file, block_body, child_context,
+                        resource_declarations_only=True,
+                    )
+                    continue
                 reason = (
                     f"{name} nested inside a resource scope is not composed "
                     "by the Phase 2 route index"
@@ -1291,6 +1463,11 @@ def _visit_route_body(
                 namespace_stack=namespaces,
                 resource=context.resource,
                 route_scope=context.route_scope,
+                module_scope_composable=(
+                    context.module_scope_composable
+                    and _scope_supports_module_composition(ruby_file, arguments, name)
+                ),
+                strict_subtree_headers=context.strict_subtree_headers,
             )
             _visit_route_body(
                 routes, warnings, ruby_file, block_body, child_context
@@ -1330,6 +1507,8 @@ def _visit_route_body(
                 namespace_stack=context.namespace_stack,
                 resource=context.resource,
                 route_scope=name,
+                module_scope_composable=context.module_scope_composable,
+                strict_subtree_headers=context.strict_subtree_headers,
             )
             _visit_route_body(
                 routes, warnings, ruby_file, block_body, child_context

@@ -79,7 +79,7 @@ unavailable_programmatic_call
 ```json
 {
   "rich_graph": "cg2",
-  "ruby_rails_audit_index": "hunt-ruby-rails-v1"
+  "ruby_rails_audit_index": "hunt-ruby-rails-v2"
 }
 ```
 
