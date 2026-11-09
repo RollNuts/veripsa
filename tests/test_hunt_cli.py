@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Offline contract gate for ``python -m tools.hunt``.
+"""Offline contract gate for bytecode-disabled ``python -m tools.hunt``.
 
 The test creates only throwaway local git repositories copied from the
 synthetic Phase 2 fixture. It never clones, opens a socket, or connects to a
@@ -562,6 +562,8 @@ def test_artifacts_manifest_and_single_build(work: Path) -> None:
     assert manifest["veripsa_commit_sha"] == _git(veripsa, "rev-parse", "HEAD")
     assert manifest["veripsa_dirty_state"] is False
     assert manifest["exact_command"] == list(exact_command)
+    assert manifest["dont_write_bytecode_startup_flag"] is H._BYTECODE_DISABLED_AT_STARTUP
+    assert manifest["dont_write_bytecode_on_module_entry"] is H._BYTECODE_DISABLED_ON_ENTRY
     assert manifest["extractor_versions"] == {
         "rich_graph": "fixture-rich-graph-v7",
         "ruby_rails_audit_index": "hunt-ruby-rails-v2",
@@ -775,7 +777,7 @@ def test_ignored_edge_and_attributes_fail_closed(work: Path) -> None:
     assert not attributes_output.exists()
 
 
-def test_actual_module_cli_is_output_only(work: Path) -> None:
+def _actual_module_cli_is_output_only(work: Path, mode: str) -> None:
     runtime = _init_runtime_repository(work)
     target = _init_repository(work, "subprocess-target", fixture=True)
     (target / ".gitignore").write_text("ignored-local.txt\n", encoding="utf-8")
@@ -795,8 +797,14 @@ def test_actual_module_cli_is_output_only(work: Path) -> None:
     environment.pop("PYTHONDONTWRITEBYTECODE", None)
     environment.pop("PYTHONPYCACHEPREFIX", None)
     environment.pop("VERIPSA_DSN", None)
+    interpreter = [sys.executable]
+    if mode == "flag":
+        interpreter.append("-B")
+    else:
+        assert mode == "environment"
+        environment["PYTHONDONTWRITEBYTECODE"] = "1"
     command = [
-        sys.executable,
+        *interpreter,
         "-m",
         "tools.hunt",
         "--target",
@@ -823,13 +831,15 @@ def test_actual_module_cli_is_output_only(work: Path) -> None:
     assert ignored.read_text(encoding="utf-8") == "must remain untouched\n"
     assert _git(target, "status", "--porcelain=v1") == ""
     assert _tree_digest(runtime) == runtime_before, (
-        "bare module CLI wrote outside its output directory"
+        f"supported {mode} module CLI wrote outside its output directory"
     )
     assert _git(runtime, "status", "--porcelain=v1") == ""
     assert not list(runtime.rglob("__pycache__"))
     assert not list(runtime.rglob("*.pyc"))
 
     manifest = _read_json(output / "run_manifest.json")
+    assert manifest["dont_write_bytecode_startup_flag"] is True, manifest
+    assert manifest["dont_write_bytecode_on_module_entry"] is True, manifest
     exact_command = manifest["exact_command"]
     assert isinstance(exact_command, list), manifest
     assert "-m" in exact_command and "tools.hunt" in exact_command, manifest
@@ -837,6 +847,76 @@ def test_actual_module_cli_is_output_only(work: Path) -> None:
         "sys.orig_argv",
         "reconstructed_module_argv",
     }
+    if manifest["exact_command_capture"] == "sys.orig_argv":
+        assert exact_command == command, manifest
+    else:
+        assert "-B" in exact_command, manifest
+
+
+def test_actual_module_cli_is_output_only(work: Path) -> None:
+    # Both supported startup modes retain every original full-input digest,
+    # artifact, clean-state and no-cache assertion in independent fresh copies.
+    for mode in ("flag", "environment"):
+        isolated = work / mode
+        isolated.mkdir()
+        _actual_module_cli_is_output_only(isolated, mode)
+
+
+def _unsupported_module_cli_is_rejected(work: Path, ignore_environment: bool) -> None:
+    runtime = _init_runtime_repository(work)
+    target = _init_repository(work, "bare-target", fixture=True)
+    output = (work / "bare-output").resolve()
+    target_before, runtime_before = _tree_digest(target), _tree_digest(runtime)
+    environment = {**GIT_ENV, "PYTHONHASHSEED": "0"}
+    for key in ("PYTHONDONTWRITEBYTECODE", "PYTHONPYCACHEPREFIX", "VERIPSA_DSN"):
+        environment.pop(key, None)
+    interpreter = [sys.executable]
+    if ignore_environment:
+        interpreter.append("-E")
+        environment["PYTHONDONTWRITEBYTECODE"] = "1"
+    result = subprocess.run(
+        [*interpreter, "-m", "tools.hunt", "--target", str(target), "--output", str(output)],
+        cwd=runtime, env=environment, check=False,
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+    )
+    assert result.returncode == 2, result
+    assert not result.stdout, result.stdout
+    assert "requires python -B or PYTHONDONTWRITEBYTECODE=1 at startup" in result.stderr
+    assert "analysis was not started" in result.stderr
+    assert not output.exists()
+    assert _tree_digest(target) == target_before
+    assert _git(target, "status", "--porcelain=v1") == ""
+    runtime_after = _tree_digest(runtime)
+    assert all(runtime_after.get(path) == digest for path, digest in runtime_before.items())
+    # Keep the interpreter's observable startup write visible. Do not remove it
+    # or call this unsupported mode output-only. No later module may be cached.
+    tag = sys.implementation.cache_tag
+    own_cache_paths = {f"tools/__pycache__/hunt.{tag}{suffix}.pyc" for suffix in ("", ".opt-1", ".opt-2")}
+    added = set(runtime_after) - set(runtime_before)
+    assert added <= own_cache_paths, added
+    assert _git(runtime, "status", "--porcelain=v1") == ""
+
+
+def test_bare_module_cli_is_rejected_before_analysis(work: Path) -> None:
+    for mode, ignore_environment in (("bare", False), ("ignored-environment", True)):
+        isolated = work / mode
+        isolated.mkdir()
+        _unsupported_module_cli_is_rejected(isolated, ignore_environment)
+
+
+def test_reconstructed_command_preserves_effective_bytecode_mode(_work: Path) -> None:
+    argv, original = sys.argv, getattr(sys, "orig_argv", None)
+    startup = H._BYTECODE_DISABLED_AT_STARTUP
+    try:
+        sys.argv = [H.__file__, "--target", "fixture"]
+        sys.orig_argv = None
+        H._BYTECODE_DISABLED_AT_STARTUP = True
+        command, capture = H._command_argv(None)
+        assert command == [sys.executable, "-B", "-m", "tools.hunt", "--target", "fixture"]
+        assert capture == "reconstructed_module_argv"
+    finally:
+        sys.argv, sys.orig_argv = argv, original
+        H._BYTECODE_DISABLED_AT_STARTUP = startup
 
 
 def test_include_exclude_semantics(work: Path) -> None:
@@ -984,6 +1064,8 @@ def main() -> int:
         test_ignored_analyzable_input_fails_closed,
         test_ignored_edge_and_attributes_fail_closed,
         test_actual_module_cli_is_output_only,
+        test_bare_module_cli_is_rejected_before_analysis,
+        test_reconstructed_command_preserves_effective_bytecode_mode,
         test_include_exclude_semantics,
         test_deterministic_outputs,
         test_main_wiring,

@@ -15,7 +15,7 @@ Rails route
 
 ## 境界
 
-`python -m tools.hunt` は次を行いません。
+`python -B -m tools.hunt`（または`PYTHONDONTWRITEBYTECODE=1 python -m tools.hunt`）は次を行いません。
 
 - GitHub App、product ingest、DB、SaaS、UIの呼び出し
 - 外部通信
@@ -24,7 +24,11 @@ Rails route
 - GitLab clone、GitLab起動、GitLab.comへの通信
 - 脆弱性候補評価、PoC作成、HackerOne報告
 
-出力は指定したoutput directoryだけに書き込みます。output directoryがtarget repositoryまたはVeripsa worktreeの内側にある場合は、symlinkを解決した後のpathでfail closedします。
+対応するbytecode-off起動では、出力は指定したoutput directoryだけに書き込みます。output directoryがtarget repositoryまたはVeripsa worktreeの内側にある場合は、symlinkを解決した後のpathでfail closedします。
+
+CLIはinterpreterの`-B`または有効な`PYTHONDONTWRITEBYTECODE=1`による起動を必須にします。module本体が最初に観測したstartup flagと`sys.dont_write_bytecode`の両方が無効化を示さなければ、targetの検証・解析・output作成より前にexit 2で拒否します。`python -E`が環境変数を無視する場合は、環境に文字列があっても許可しません。
+
+bare `python -m tools.hunt`は未対応です。CPythonのmodule loaderは本体のguardより前に、このmodule自身の`__pycache__/hunt.*.pyc`を作る場合があります。拒否時もその既発生writeを取り消さず、この起動をoutput-onlyと呼びません。`run_hunt`やimport後の`main(argv)`を直接使うprogrammatic callerは、interpreter起動と既発生writeの管理を引き受けます。module本体のguardは以後のimportsのbytecode writeを抑止しますが、callerのstartup全体を保証しません。
 
 target/Veripsaのgit stateは索引生成後、最初のartifact write前にも再確認します。通常の並行commitまたはclean→dirty変化を検出した場合、mixed snapshotを保存せず失敗します。repository localの`core.fsmonitor`は無効化し、global/system Git configも状態確認へ取り込みません。
 
@@ -168,7 +172,9 @@ PYTHONDONTWRITEBYTECODE=1 PYTHONHASHSEED=0 \
   python3 tests/test_hunt_cli.py
 ```
 
-CLI gateは隔離したclean Veripsa copyから、`PYTHONDONTWRITEBYTECODE`を設定しないbare `python -m tools.hunt`もsubprocess実行します。targetの解析対象外ignored fileを含むdigest、Veripsaのdigest、git status、`__pycache__`/`.pyc`不在を確認します。また、ignored Ruby/edge-only input、ignored `.gitattributes`、target/Veripsaの`assume-unchanged` / `skip-worktree`、gitlink、DB/networkのPython API trap、repository-local `core.fsmonitor` decoy、解析中state changeのfail-closedを検証します。
+CLI gateは`-B`と環境変数方式それぞれを、別のfresh clean Veripsa copyからsubprocess実行します。両方で元の全条件（9成果物、targetの解析対象外ignored fileを含むfull digest、Veripsaのfull digest、git status、`__pycache__`/`.pyc`不在）を維持します。bare起動と`-E`で環境変数を無視した起動は、解析前の明示拒否・target不変・output不在を別に検証します。拒否時のruntime差分はmodule loader自身のcacheの可能性を明示して検査し、cacheを削除して成功扱いにはしません。Core `fcb633eadd9b205a82ed605384def4a9f6189f9d`の旧bare成功期待はCPython 3.12.13で14 PASS/1 FAILだった過去の観測です。
+
+また、ignored Ruby/edge-only input、ignored `.gitattributes`、target/Veripsaの`assume-unchanged` / `skip-worktree`、gitlink、DB/networkのPython API trap、repository-local `core.fsmonitor` decoy、解析中state changeのfail-closedを検証します。
 
 関連する既存graph regression:
 

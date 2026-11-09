@@ -55,7 +55,7 @@ target/Veripsa state recheck
 atomic JSON/Markdown writes to output only
 ```
 
-targetとVeripsaのgit state取得では`GIT_OPTIONAL_LOCKS=0`を使用し、`core.fsmonitor=false`、`submodule.recurse=false`をcommand localで指定します。global/system Git config、terminal prompt、system attributesも無効化します。Python bytecode writeもprocess内で無効化します。
+targetとVeripsaのgit state取得では`GIT_OPTIONAL_LOCKS=0`を使用し、`core.fsmonitor=false`、`submodule.recurse=false`をcommand localで指定します。global/system Git config、terminal prompt、system attributesも無効化します。CLIにはinterpreter起動時の`-B`または有効な`PYTHONDONTWRITEBYTECODE=1`を要求し、immutable startup flagと本体guard前のeffective値を両方観測します。bare起動は後続imports・target検証・解析・output作成より前に拒否しますが、loaderが先に作ったmodule自身のcacheは取り消せません。programmatic APIのcallerは起動時のwriteを管理します。
 
 索引生成後の再確認でroot、HEAD、dirty booleanが変化していた場合、artifact write前にfail closedします。これはatomic filesystem snapshotではありませんが、通常の並行commitとclean→dirty変化が旧manifestへ混入することを防ぎます。
 
