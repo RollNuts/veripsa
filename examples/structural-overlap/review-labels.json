@@ -1,0 +1,11 @@
+{
+  "schema": "synthetic-review-pairs-v1",
+  "task": "Does this selected file pair have a functional relationship worth inspecting?",
+  "population": "One preselected pair per constructed case, four cases total; not a sampled OSS corpus or a bug detector.",
+  "cases": [
+    {"name": "function_contract", "files": ["billing/pricing.py", "web/checkout.py"], "related": true, "reason": "The caller imports and calls the changed function."},
+    {"name": "compatible_related", "files": ["billing/pricing.py", "web/checkout.py"], "related": true, "reason": "The caller depends on the changed function even though the combined change passes."},
+    {"name": "unrelated", "files": ["billing/pricing.py", "web/banner.py"], "related": false, "reason": "The synthetic banner has no functional dependency on pricing; comment co-edits are incidental."},
+    {"name": "dynamic_lookup", "files": ["billing/pricing.py", "web/checkout.py"], "related": true, "reason": "The synthetic caller dynamically loads this function; the static projection does not resolve that lookup."}
+  ]
+}

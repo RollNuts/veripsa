@@ -309,7 +309,12 @@ def _check_report(report: dict) -> None:
         raise DemoError('An expected static relationship probe was not observed.')
 
 
-def run_demo(git_path: str) -> dict:
+def collect_demo(git_path: str) -> dict:
+    """Collect observations without freezing a future extractor's answers.
+
+    The normal demo below still enforces its committed regression matrix.
+    A benchmark can instead score changed observations against separate labels.
+    """
     with tempfile.TemporaryDirectory(prefix='core-structural-demo-') as directory:
         temporary = Path(directory)
         cases = [_case(name, temporary, git_path) for name in (
@@ -333,6 +338,11 @@ def run_demo(git_path: str) -> dict:
             'Route/config probes parse synthetic source only; they do not run application frameworks.',
         ],
     }
+    return report
+
+
+def run_demo(git_path: str) -> dict:
+    report = collect_demo(git_path)
     _check_report(report)
     return report
 
