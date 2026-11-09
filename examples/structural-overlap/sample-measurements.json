@@ -1,0 +1,20 @@
+{
+  "wall_seconds": 3.8765218330081552,
+  "wall_scope": "worker startup + four fixtures + Git + extraction + synthetic runtime + probes",
+  "child_ru_maxrss": 35962880,
+  "child_ru_maxrss_units": "bytes",
+  "memory_scope": "RUSAGE_CHILDREN high-water RSS after one worker; not sum/aggregate peak of concurrent processes",
+  "python": "3.12.13",
+  "platform": "darwin",
+  "core_commit": "0d19f638ef25f4a36292cd7019f9e7a74cd95598",
+  "core_dirty": false,
+  "source_sha256": {
+    "examples/structural-overlap/demo.py": "acf04f755462263d91b7c085b46a3d26c07fc63f3a79551a14abd1769cdf619a",
+    "examples/structural-overlap/benchmark.py": "f5224d7aa09e84f3105074bcc5f39059f3398602f9b4c3d2c4cb5be1978bd65d",
+    "examples/structural-overlap/review-labels.json": "68fcbd20f61a93631d05961ec90a346e4b8592e29476f558f78bdca562e5ba7b"
+  },
+  "reproducibility": "Compare stable scores separately; timing/RSS vary by machine and caches.",
+  "observed_on": "2026-11-09",
+  "run_count": 1,
+  "scope_note": "One macOS stdlib-only public-reader run; no cross-tool or general performance claim. Environment setup and cloning are excluded."
+}

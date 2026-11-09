@@ -36,7 +36,7 @@ body:
       label: Public boundary
       description: What must not be disclosed?
       value: |
-        Do not expose scoring, routing, feature-extraction, graph-construction, prioritization details, or unpublished metrics.
+        Explain public implementation and verified results with source links. Do not expose non-public operational details, confidential inputs, or unverified metrics.
         Keep content-free precise: source file bodies and diff bodies are not stored, displayed, or used as code-review output.
     validations:
       required: true
