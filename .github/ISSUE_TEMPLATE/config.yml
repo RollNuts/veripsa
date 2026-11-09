@@ -6,9 +6,9 @@ contact_links:
   - name: Veripsa Core support guide
     url: https://github.com/RollNuts/veripsa/blob/main/SUPPORT.md
     about: Use this for install, first-run, missing-check, and support metadata boundaries.
-  - name: Public demo repository
-    url: https://github.com/RollNuts/veripsa/blob/main/SUPPORT.md
-    about: Read the availability and public-safe support boundary before filing.
-  - name: Veripsa website
-    url: https://veripsa.com
-    about: Product and trust information; hosted installation is currently suspended.
+  - name: Free local graph and history demo
+    url: https://github.com/RollNuts/veripsa/tree/main/examples/structural-overlap
+    about: Compare real Git merges, graph relationships, co-change, and execution with Git and Python.
+  - name: Contribute evidence or a focused fix
+    url: https://github.com/RollNuts/veripsa/blob/main/CONTRIBUTING.md
+    about: Start with a minimal reproduction, local tests, and the existing analysis contracts.

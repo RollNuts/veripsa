@@ -1,0 +1,80 @@
+name: Analysis report / 解析報告
+description: Report a wrong or missing relationship, parser gap, performance issue, experiment, or method proposal
+title: "[Analysis] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        日本語でも報告できます。Use public or synthetic inputs only; a small reproduction is useful even without a code fix.
+        This form is for analysis evidence, not vulnerability disclosure. For a suspected Core vulnerability, follow [SECURITY.md](https://github.com/RollNuts/veripsa/security/policy). For another project's unpublished finding, use its disclosure policy.
+        Do not paste source/diff bodies, private repository identifiers, raw graphs, credentials, personal data, or unreviewed logs. The hosted App is suspended.
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Report type / 報告の種類
+      options:
+        - "False positive: an incorrect relationship"
+        - "False negative: a missed relationship"
+        - "Language or parser limitation"
+        - "Performance or memory issue"
+        - "Reproducible experiment result"
+        - "Analysis-method proposal (not yet measured is acceptable)"
+    validations:
+      required: true
+  - type: textarea
+    id: input
+    attributes:
+      label: Minimal public input / 最小再現入力
+      description: Link a small self-authored synthetic fixture or permitted public source, with its public commit and relative paths. Include language and why this input is minimal. Do not paste file bodies or private commit hashes.
+      placeholder: |
+        Public fixture / repository permalink:
+        Public input commit:
+        Relative paths and language:
+    validations:
+      required: true
+  - type: textarea
+    id: version
+    attributes:
+      label: Analyzer and environment / 解析版と環境
+      description: Give the public Core commit or release, Python, OS, optional parser versions/availability, and relevant flags. For an unrun proposal, say not run.
+      placeholder: |
+        Core public commit or release:
+        Python / OS:
+        Optional parsers and flags:
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Command and steps / 再現手順
+      description: Give an exact public-safe local command and steps. Replace local user paths with placeholders. For an unrun proposal, describe the proposed experiment.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected result and evidence / 期待結果と根拠
+      description: Name the expected edge, missing edge, or unresolved state and link its definition/use evidence. A working related change alone is not a false positive. For a proposal, state the hypothesis and what result would contradict it.
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual result / 実際の結果
+      description: Provide only reviewed relationship/status/count summaries. Include missed, unresolved, and unreviewed candidates, not only successes. Say not measured or not run where applicable; do not paste raw graph/log output.
+    validations:
+      required: true
+  - type: textarea
+    id: measurements
+    attributes:
+      label: Evaluation or performance details / 評価・性能の測り方
+      description: For experiments, define expected review points, selection method, complete candidate counts, and any unreviewed cases. For performance, state repetitions, elapsed-time scope and peak-memory method. Do not infer general precision/recall from partial labels or historical correlation.
+    validations:
+      required: false
+  - type: checkboxes
+    id: public-data
+    attributes:
+      label: Public-data check / 公開範囲
+      options:
+        - label: This report uses only permitted public or synthetic data and contains no unpublished vulnerability, secret, private source/identifier, or personal data.
+          required: true

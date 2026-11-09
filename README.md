@@ -61,6 +61,8 @@ policy is separate from this local set comparison.
 
 ### Use the existing work
 
+- **Research index:** [architecture, graph, Co-change, evaluation, security research, examples, limitations, and development history](docs/RESEARCH_INDEX.md), with measured evidence separated from unmeasured accuracy and performance.
+- **Contribute a result or fix:** [participation guide](CONTRIBUTING.md) and [analysis report form](https://github.com/RollNuts/veripsa/issues/new?template=analysis_report.yml) for incorrect/missed relationships, parser gaps, performance, and reproducible experiments. A minimal reproduction or counterexample is useful without a code change.
 - **Analysis inventory and DB choices:** [graph, Co-change, persistence, and tested boundaries](docs/ANALYSIS_ASSETS.md) maps existing functions and compares DB-free use, saved snapshots, and local PostgreSQL.
 - **History evaluation:** the [Flask example](docs/OFFLINE_EXAMPLE.md) compares
   structural relationships with past co-change. It measures a different question
