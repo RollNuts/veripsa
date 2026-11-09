@@ -1,0 +1,107 @@
+{
+  "benchmark": "synthetic-review-pairs-v1",
+  "case_count": 4,
+  "task": "Does this selected file pair have a functional relationship worth inspecting?",
+  "population": "One preselected pair per constructed case, four cases total; not a sampled OSS corpus or a bug detector.",
+  "scores": {
+    "graph": {
+      "tp": 2,
+      "fp": 0,
+      "fn": 1,
+      "tn": 1,
+      "precision": 1.0,
+      "recall": 0.6666666666666666
+    },
+    "cochange": {
+      "tp": 2,
+      "fp": 1,
+      "fn": 1,
+      "tn": 0,
+      "precision": 0.6666666666666666,
+      "recall": 0.6666666666666666
+    },
+    "union": {
+      "tp": 3,
+      "fp": 1,
+      "fn": 0,
+      "tn": 0,
+      "precision": 0.75,
+      "recall": 1.0
+    },
+    "corroborated": {
+      "tp": 1,
+      "fp": 0,
+      "fn": 2,
+      "tn": 1,
+      "precision": 1.0,
+      "recall": 0.3333333333333333
+    }
+  },
+  "cases": [
+    {
+      "name": "function_contract",
+      "related_label": true,
+      "signals": {
+        "graph": true,
+        "cochange": false,
+        "union": true,
+        "corroborated": false
+      },
+      "integrated_runtime": {
+        "status": "failed",
+        "error_type": "TypeError"
+      }
+    },
+    {
+      "name": "compatible_related",
+      "related_label": true,
+      "signals": {
+        "graph": true,
+        "cochange": true,
+        "union": true,
+        "corroborated": true
+      },
+      "integrated_runtime": {
+        "status": "passed",
+        "return_value": 205
+      }
+    },
+    {
+      "name": "unrelated",
+      "related_label": false,
+      "signals": {
+        "graph": false,
+        "cochange": true,
+        "union": true,
+        "corroborated": false
+      },
+      "integrated_runtime": {
+        "status": "passed",
+        "return_value": 105
+      }
+    },
+    {
+      "name": "dynamic_lookup",
+      "related_label": true,
+      "signals": {
+        "graph": false,
+        "cochange": true,
+        "union": true,
+        "corroborated": false
+      },
+      "integrated_runtime": {
+        "status": "failed",
+        "error_type": "TypeError"
+      }
+    }
+  ],
+  "not_measured": [
+    "general precision/recall",
+    "Top-K ranking",
+    "human review time",
+    "bug or vulnerability detection",
+    "unknown OSS cases",
+    "aggregate concurrent process-tree peak memory"
+  ],
+  "hosted_signal": "not observed"
+}
