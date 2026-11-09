@@ -317,7 +317,7 @@ def _check_nested_static_module_scope(_indexes: dict[str, Any]) -> None:
     assert "2 local definitions" in _route(routes, "POST", "/api/v2/workspaces/:workspace_id/jobs", "create")["unresolved_reason"]
 
     for needle in (
-        "get :direct_action", "namespace :uncomposed", "resources :splatted",
+        "get :direct_action", "namespace :uncomposed", "resources :splatted,",
         "resources :duplicate,", "scope module: dynamic_module",
         'scope module: :workspaces, path:', "scope module: :workspaces, **",
         "scope module: :workspaces, module:", 'scope module: "/absolute"',
@@ -346,6 +346,9 @@ def _check_nested_static_module_scope(_indexes: dict[str, Any]) -> None:
         'scope "/outer", path: "/first", path: "/second"',
         'scope "/outer", constraints: route_constraints',
         "namespace :outer, defaults: { controller: :other }",
+        'scope module: "/outer"',
+        'namespace :outer, module: "Upper::Unsupported"',
+        "namespace :Outer",
     )
     for header in ancestor_headers:
         with tempfile.TemporaryDirectory(prefix="hunt-nested-module-ancestor-") as temp:
@@ -365,6 +368,54 @@ def _check_nested_static_module_scope(_indexes: dict[str, Any]) -> None:
         assert not any(r.get("source_line") == 7 for r in guarded["rails_routes"]), (header, guarded["rails_routes"])
         assert any(r.get("source_line") == 6 and r.get("unresolved_reason") for r in guarded["rails_routes"]), header
         assert not any(w.get("category") == "ruby_parse_error" for w in guarded["warnings"]), header
+
+
+def _check_composed_descendant_headers(_indexes: dict[str, Any]) -> None:
+    builder = _load_builder()
+    assert builder is not None
+    fixture = ROOT / "tests/fixtures/hunt_nested_module_scope"
+    result = builder(fixture, include_patterns=(), exclude_patterns=())
+    routes = result["rails_routes"]
+    source = (fixture / "config/routes.rb").read_text().splitlines()
+
+    def line_of(needle: str) -> int:
+        matches = [i for i, line in enumerate(source, 1) if needle in line]
+        assert len(matches) == 1, (needle, matches)
+        return matches[0]
+
+    for needle in (
+        'resources :entries, path: "old"', "resources :splatted_entries", "resources :dynamic_entries",
+        "get :duplicate_to", "get :splatted_to", "get :unknown_options",
+        "get :absolute_to", "get :absolute_controller", 'get "absolute_rocket"', "get :dynamic_on",
+        "resources :absolute_entries", "get :inline_endpoint", "get(:empty_inline_endpoint",
+        "member :ignored_argument", "collection(**route_options)",
+        "Rails.application.routes.draw do", 'scope "/unsupported_path"',
+        "scope module: :nested, module: :wrong",
+    ):
+        # The Rails.application.routes.draw root is also present; select its
+        # explicitly nested occurrence for this context-reset negative.
+        line = (next(i for i, value in enumerate(source, 1)
+                     if "            Rails.application.routes.draw do" in value)
+                if needle == "Rails.application.routes.draw do" else line_of(needle))
+        found = [r for r in routes if r["source_line"] == line]
+        assert found and all(r["confidence"] == "low" and r["unresolved_reason"]
+                             and r["controller_file"] is None for r in found), (needle, found)
+    assert not any((r.get("action") or "").startswith("discarded_") for r in routes), routes
+
+    prefix = "/api/v2/workspaces/:workspace_id/containers/:container_id"
+    expected = (
+        prefix + "/valid_entries",
+        prefix + "/valid_entries/:valid_entry_id/deeper_entries",
+        prefix + "/valid_entries/:id/detail",
+        prefix + "/valid_entries/:id/rocket",
+        prefix + "/valid_entries/summary",
+        prefix + "/valid_entries/rocket_summary",
+        prefix + "/deeper_entries",
+    )
+    for path in expected:
+        route = _route(routes, "GET", path, "index")
+        assert route["confidence"] == "high" and not route["unresolved_reason"], route
+        assert route["controller_file"] and route["action_line"] == 2, route
 
 
 def _check_authorization(indexes: dict[str, Any]) -> None:
@@ -965,6 +1016,7 @@ def main() -> int:
         ("result schema", _check_schema),
         ("Rails route index", _check_routes),
         ("nested static module scope", _check_nested_static_module_scope),
+        ("composed descendant headers", _check_composed_descendant_headers),
         ("authorization call index", _check_authorization),
         ("Sidekiq worker/enqueue index", _check_sidekiq),
         ("execution path integration", _check_execution_paths),

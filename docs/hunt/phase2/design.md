@@ -117,7 +117,9 @@ dynamic positional/path/controller/module option、dynamic target、unsupported 
 
 resource内の`scope module: :name`（またはstatic string）のみ、親resourceのnested URL prefixとcontroller moduleを引き継ぎ、直下の`resources`/`resource`を合成します。moduleは相対的な小文字のunderscore名（`/`区切り可）、optionは重複・splatのない`module`1件に限定します。member/collection内のscope、path付きscope、namespace、およびこのmodule scope直下のcustom verbや別blockは未解決です。親resourceのdefault controllerをmodule配下のcustom routeへ誤用しないため、この限定を設けています。controller/actionへの接続には引き続き選択範囲内の一意なlocal definitionが必要です。これはroute navigationの拡張であり、callbackやauthorizationの正しさを判定しません。
 
-新しいmodule合成には、祖先resource/namespace/scopeのoptionも重複・splatなく読めることを要求します。祖先scopeのoptionは既存のstatic `path`/`module`、およびliteral `defaults: { format: ... }`に限定します。未知の祖先optionから推測したcontextを、新対応のrouteへhigh confidenceで引き継ぎません。この追加guardは新module合成の入口に作用し、旧DSL全体の対応範囲を拡張するものではありません。
+新しいmodule合成には、祖先resource/namespace/scopeのoptionも重複・splatなく読めることを要求します。祖先scopeのoptionは既存のstatic `path`/`module`、およびliteral `defaults: { format: ... }`に限定します。祖先のmodule名とnamespaceから推定するmodule名にも、同じ相対的な小文字のunderscore名（`/`区切り可）を要求します。先頭slashや未対応shapeのmodule合成は推測しません。未知の祖先optionから推測したcontextを、新対応のrouteへhigh confidenceで引き継ぎません。この追加guardは新module合成の入口に作用し、旧DSL全体の対応範囲を拡張するものではありません。
+
+直下declarationだけを許す制約と、headerを厳密に検査する制約は別に保持します。新module配下で一度resource blockへ入っても、strict header検査は全descendantへ継承します。各resourceの重複・splat、custom verbの未対応optionやinline block、member/collectionの引数、nested `draw`によるcontext resetは未解決です。absolute controller指定もこの新subtreeでは未対応として残します。staticな深いresource、member/collection verb、対応するhash-rocket表記は引き続き解析します。
 
 `config/routes.rb`以外の`config/routes/**`/`*_routes.rb`は、`draw`されたscopeを証明できないためroute recordを作ってもinclusion context unknownとしてlow/unresolvedにし、controller actionやexecution pathへ確定接続しません。
 

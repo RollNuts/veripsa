@@ -42,6 +42,8 @@ CFGを作らないため、同一method内の異なるbranchにあるauthorizati
 
 resource内のmodule-only scopeは、相対的なstatic module名と直下の`resources`/`resource`だけを合成します。scope直下のcustom verb、namespace、その他のblock、member/collection内のscope、dynamic/duplicate/splat optionは未解決です。module scopeから辿れたrouteも、authorization callback、policy、tenant isolation、params data flowや脆弱性の有無を証明しません。
 
+この新module配下では、resource block内の全descendantにも重複・splatのないheaderを要求します。custom verbの対応optionは`to`/`on`/`controller`/`action`（hash-rocket形式では`on`）です。未対応option、inline endpoint block、引数付きmember/collection、nested `draw`、absolute controller pathは未解決のままにします。これは旧DSL全体のheader解析を修正したという意味ではありません。
+
 `config/routes.rb`以外のroute fileは、`draw`時のnamespace/scope inclusion contextを復元しません。そのfile内のrouteは索引に残りますが、low/unresolvedでありexecution pathへ確定接続しません。
 
 ## Authorization
