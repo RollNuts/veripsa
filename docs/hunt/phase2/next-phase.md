@@ -23,7 +23,7 @@ GitLab実Repo解析、Phase 3、脆弱性候補評価には進みません。
 Phase 3を実施する場合も、最初の作業はlocal source indexの生成と人手確認だけです。
 
 1. GitLabとVeripsa双方のSHA、clean state、commandを記録する。
-2. `python -m tools.hunt`でfull rich graphとPhase 2索引を生成する。
+2. `python -B -m tools.hunt`でfull rich graphとPhase 2索引を生成する。
 3. `warnings.json`を先に確認し、parse failure、dynamic route、unknown worker、ambiguous serviceを整理する。
 4. Project export/importに関係するroute、controller、authorization、enqueue、workerのfile/lineを元コードで確認する。
 5. graph/index edgeを事実と盲信せず、GitLabのroute定義、Ability/policy、service、worker、既存testと突合する。
