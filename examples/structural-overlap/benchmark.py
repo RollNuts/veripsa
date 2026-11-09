@@ -15,6 +15,7 @@ from pathlib import Path
 import platform
 import re
 import shutil
+import stat
 import subprocess
 import sys
 import time
@@ -107,8 +108,6 @@ def score(report: dict, labels: dict) -> dict:
 
 def _run(git_path: str) -> tuple[dict, dict]:
     started = time.perf_counter()
-    # This child is the only child of this CLI process. ru_maxrss is reported
-    # in its platform's units, not mislabeled as aggregate process-tree memory.
     process = subprocess.run([sys.executable, '-I', '-S', str(HERE / 'benchmark.py'),
                               '--worker', '--git', git_path], capture_output=True,
                              text=True, check=False, timeout=120,
@@ -116,38 +115,100 @@ def _run(git_path: str) -> tuple[dict, dict]:
     elapsed = time.perf_counter() - started
     if process.returncode:
         raise BenchmarkError('Synthetic collection failed; no successful score is claimed.')
-    data = json.loads(process.stdout)
-    rss = None
-    rss_units = None
-    if sys.platform in ('darwin', 'linux'):
-        import resource
-        rss = resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss
-        rss_units = 'bytes' if sys.platform == 'darwin' else 'KiB'
-    # Read checkout identity only after collecting RSS, so these Git reads do
-    # not contaminate the single-worker resource observation above.
+    envelope = json.loads(process.stdout)
+    if (not isinstance(envelope, dict) or set(envelope) != {'report', 'worker_memory'}
+            or not isinstance(envelope['worker_memory'], dict)
+            or set(envelope['worker_memory']) != {'ru_maxrss', 'units'}):
+        raise BenchmarkError('Invalid worker observation.')
+    memory = envelope['worker_memory']
+    if not ((type(memory['ru_maxrss']) in (int, float) and memory['ru_maxrss'] >= 0
+             and memory['units'] in ('bytes', 'KiB'))
+            or memory == {'ru_maxrss': None, 'units': None}):
+        raise BenchmarkError('Invalid worker memory observation.')
+    measurements = {'measurement_schema': 'synthetic-review-pairs-measurements-v2',
+                    'wall_seconds': elapsed,
+                    'wall_scope': 'worker startup + four fixtures + Git + extraction + synthetic runtime + probes; excludes input-identity checks',
+                    'worker_ru_maxrss': memory['ru_maxrss'], 'worker_ru_maxrss_units': memory['units'],
+                    'memory_scope': 'RUSAGE_SELF high-water RSS inside the worker only; excludes parent, Git and synthetic Python descendants; not aggregate concurrent process-tree peak memory',
+                    'python': platform.python_version(), 'platform': sys.platform,
+                    'reproducibility': 'Compare stable scores separately; timing/RSS vary by machine and caches.'}
+    return envelope['report'], measurements
+
+
+def _git_read(git_path: str, *arguments: str) -> bytes:
     environment = {key: value for key, value in os.environ.items() if not key.startswith('GIT_')}
     environment.update(GIT_CONFIG_NOSYSTEM='1', GIT_CONFIG_GLOBAL=os.devnull,
                        GIT_TERMINAL_PROMPT='0', GIT_OPTIONAL_LOCKS='0')
-    def git_read(*arguments: str) -> str:
-        read = subprocess.run([git_path, '-c', 'core.fsmonitor=false', '-C', str(ROOT), *arguments],
-                              env=environment, capture_output=True, text=True,
-                              timeout=15, check=False, stdin=subprocess.DEVNULL)
-        if read.returncode:
-            raise BenchmarkError('Could not identify the benchmark checkout.')
-        return read.stdout.strip()
-    commit = git_read('rev-parse', 'HEAD')
+    read = subprocess.run([git_path, '-c', 'core.fsmonitor=false', '-C', str(ROOT), *arguments],
+                          env=environment, capture_output=True,
+                          timeout=15, check=False, stdin=subprocess.DEVNULL)
+    if read.returncode:
+        raise BenchmarkError('Could not identify the benchmark checkout.')
+    return read.stdout
+
+
+def _input_state(git_path: str) -> tuple[dict, bytes]:
+    """Fingerprint input bytes without publishing the checkout's file list.
+
+    This detects ordinary edits/commits across collection, including edits to
+    an already dirty checkout. It is not an atomic filesystem snapshot.
+    """
+    commit = _git_read(git_path, 'rev-parse', 'HEAD').decode('ascii').strip()
     if not re.fullmatch(r'[0-9a-f]{40}|[0-9a-f]{64}', commit):
         raise BenchmarkError('Invalid checkout identity.')
-    measurements = {'wall_seconds': elapsed, 'wall_scope': 'worker startup + four fixtures + Git + extraction + synthetic runtime + probes',
-                    'child_ru_maxrss': rss, 'child_ru_maxrss_units': rss_units,
-                    'memory_scope': 'RUSAGE_CHILDREN high-water RSS after one worker; not sum/aggregate peak of concurrent processes',
-                    'python': platform.python_version(), 'platform': sys.platform,
-                    'core_commit': commit,
-                    'core_dirty': bool(git_read('status', '--porcelain=v1', '--untracked-files=normal')),
-                    'source_sha256': {str(path.relative_to(ROOT)): hashlib.sha256(path.read_bytes()).hexdigest()
-                                      for path in (HERE / 'demo.py', HERE / 'benchmark.py', HERE / 'review-labels.json')},
-                    'reproducibility': 'Compare stable scores separately; timing/RSS vary by machine and caches.'}
-    return data, measurements
+    index = _git_read(git_path, 'ls-files', '-v', '-z')
+    if any(not entry.startswith(b'H ') for entry in index.split(b'\0') if entry):
+        # In particular, h/other lowercase tags mean assume-unchanged and S
+        # means skip-worktree. status alone can falsely call those bytes clean.
+        raise BenchmarkError('Hidden or unresolved index entries are unsupported; use a full checkout.')
+    listed = _git_read(git_path, 'ls-files', '--cached', '--others', '--exclude-standard', '-z')
+    paths = sorted(set(path.decode('utf-8') for path in listed.split(b'\0') if path))
+    source_paths = {str(path.relative_to(ROOT)) for path in
+                    (HERE / 'demo.py', HERE / 'benchmark.py', HERE / 'review-labels.json')}
+    source_hashes = {}
+    labels_bytes = None
+    records = []
+    for relative in paths:
+        path = Path(relative)
+        if path.is_absolute() or '..' in path.parts:
+            raise BenchmarkError('Invalid checkout input path.')
+        absolute = ROOT / path
+        info = absolute.lstat()
+        if not stat.S_ISREG(info.st_mode):
+            raise BenchmarkError('Checkout inputs must be regular files; no symlinks or submodules.')
+        with absolute.open('rb') as handle:
+            # Do not follow a replacement symlink or silently mix file versions
+            # while fingerprinting. The outer before/after guard remains needed.
+            opened = os.fstat(handle.fileno())
+            if (opened.st_dev, opened.st_ino) != (info.st_dev, info.st_ino):
+                raise BenchmarkError('Checkout input changed while opening it.')
+            body = handle.read()
+            finished = os.fstat(handle.fileno())
+            if (opened.st_size, opened.st_mtime_ns) != (finished.st_size, finished.st_mtime_ns):
+                raise BenchmarkError('Checkout input changed while reading it.')
+        digest = hashlib.sha256(body).hexdigest()
+        records.append([relative, bool(info.st_mode & stat.S_IXUSR), digest])
+        if relative in source_paths:
+            source_hashes[relative] = digest
+        if absolute == HERE / 'review-labels.json':
+            labels_bytes = body
+    if set(source_hashes) != source_paths or labels_bytes is None:
+        raise BenchmarkError('Required benchmark source inputs are missing.')
+    state = {'core_commit': commit,
+             'core_dirty': bool(_git_read(git_path, 'status', '--porcelain=v1', '--untracked-files=normal').strip()),
+             'checkout_input_sha256': hashlib.sha256(json.dumps(records, ensure_ascii=False,
+                                                               separators=(',', ':')).encode('utf-8')).hexdigest(),
+             'checkout_input_file_count': len(records), 'source_sha256': source_hashes,
+             'input_identity_scope': 'Tracked and nonignored untracked regular-file bytes, executable flags and Git HEAD/dirty state, checked before/after collection before writing outputs; hidden index flags/symlinks/submodules rejected; ignored files excluded; not an atomic filesystem snapshot'}
+    return state, labels_bytes
+
+
+def _worker_memory() -> dict:
+    if sys.platform not in ('darwin', 'linux'):
+        return {'ru_maxrss': None, 'units': None}
+    import resource
+    return {'ru_maxrss': resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,
+            'units': 'bytes' if sys.platform == 'darwin' else 'KiB'}
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -159,17 +220,28 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     try:
         if args.worker:
-            print(json.dumps(demo.collect_demo(args.git)))
+            report = demo.collect_demo(args.git)
+            print(json.dumps({'report': report, 'worker_memory': _worker_memory()}))
             return 0
-        labels = json.loads((HERE / 'review-labels.json').read_text(encoding='utf-8'))
+        before, labels_bytes = _input_state(args.git)
+        labels = json.loads(labels_bytes.decode('utf-8'))
         data, measurements = _run(args.git)
+        after, after_labels = _input_state(args.git)
+        if before != after or labels_bytes != after_labels:
+            raise BenchmarkError('Benchmark inputs changed during collection; no score is reported.')
+        measurements.update(before)
         result = score(data, labels)
         if args.measurements:
             with args.measurements.open('x', encoding='utf-8') as handle:
                 json.dump(measurements, handle, ensure_ascii=False, indent=2)
                 handle.write('\n')
         print(json.dumps(result, ensure_ascii=False, indent=2))
-    except (BenchmarkError, demo.DemoError, OSError, ValueError, KeyError, TypeError,
+    except BenchmarkError as error:
+        # All BenchmarkError messages are fixed descriptions, never subprocess
+        # output, input content, or interpolated filesystem paths.
+        print('Benchmark failed: ' + str(error) + ' No successful score is claimed.', file=sys.stderr)
+        return 1
+    except (demo.DemoError, OSError, ValueError, KeyError, TypeError,
             subprocess.SubprocessError):
         print('Benchmark failed; check inputs/setup/output path. No successful score is claimed.', file=sys.stderr)
         return 1

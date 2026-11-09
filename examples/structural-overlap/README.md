@@ -132,14 +132,38 @@ being forced to reproduce an old miss. A proposed improvement must also explain
 and update affected regression expectations; do not delete a negative case or
 change its label just to improve a score.
 
-`--measurements` separates variable machine measurements from stable scores:
-wall time includes worker startup, all four disposable histories, extraction,
-synthetic executions and the route/config probes. `child_ru_maxrss` records
-`RUSAGE_CHILDREN` after that worker, in bytes on macOS or KiB on Linux. It is
-**not aggregate concurrent process-tree peak memory**. The file records Python,
-platform, Core commit, dirty state and fixture/scorer/label hashes, without local
-absolute paths. Report a clean, pinned checkout for reproducible comparisons;
-an uncommitted run is explicitly dirty.
+Before collection, the runner retains the exact label bytes used for scoring and
+fingerprints the checkout's tracked and nonignored untracked regular files,
+executable flags, Git HEAD and dirty state. It compares those observations after
+collection. An edit or commit, including an edit that leaves a checkout dirty
+both before and after, fails without a score or measurement file. Relative file
+lists and file bodies are not published; an aggregate checkout digest and the
+three named fixture/scorer/label hashes identify the observed input bytes.
+Unrelated checkout changes also abort. Symlinks, submodules and hidden index
+flags (`assume-unchanged` / `skip-worktree`) are rejected by this small runner
+rather than treated as fully fingerprinted, clean inputs.
+
+The before/after check is **not an atomic filesystem snapshot**. It excludes
+ignored files and cannot prove that no transient edit was made and reverted
+between observations. Use an isolated, pinned checkout and avoid concurrent
+writers for reproducible comparisons. The dirty flag describes the observed
+inputs before score/measurement output is written; an uncommitted run stays
+explicitly dirty.
+
+`--measurements` separates variable machine measurements from stable scores.
+The current `synthetic-review-pairs-measurements-v2` record measures worker
+startup, all four disposable histories, extraction, synthetic executions and
+route/config probes; wall time excludes the input-identity checks. Its
+`worker_ru_maxrss` is read as `RUSAGE_SELF` **inside that worker**, in bytes on
+macOS or KiB on Linux. It excludes the parent, preflight Git calls and Git/Python
+descendants, and is **not aggregate concurrent process-tree peak memory**.
+
+The [historical sample](sample-measurements.json) remains the original clean run
+at its recorded `0d19f638` revision. Its older `child_ru_maxrss` field used
+`RUSAGE_CHILDREN`; do not compare that value with the new worker-only field as
+though the memory scopes were identical. Neither record is a general performance
+study. Current records retain Python, platform and the input identity without
+local absolute paths.
 
 This is a small constructed regression benchmark, not an independent sample of
 real repositories. It measures no general precision/recall, Top-K ranking,
