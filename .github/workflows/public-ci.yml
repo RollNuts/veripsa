@@ -48,6 +48,9 @@ jobs:
           python3 tests/test_external_probe_target.py
           python3 tests/test_coverage_percent.py
 
+      - name: Reproduce local structural-overlap evidence
+        run: python3 -m unittest discover -s tests -p 'test_structural_overlap_demo.py' -v
+
       - name: Run credential lifecycle leak test
         run: python3 tests/test_auth_lifecycle.py
 

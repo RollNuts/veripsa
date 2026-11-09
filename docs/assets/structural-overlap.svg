@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="300" viewBox="0 0 960 300" role="img" aria-labelledby="title desc">
+<title id="title">A clean Git merge can still combine incompatible calls</title>
+<desc id="desc">Local synthetic example: change A makes a fee argument keyword-only; change B passes that argument positionally. Each branch runs by itself. Git merges different files cleanly. Core observes their shared call/import relationship. The combined Python run raises TypeError. An observed relationship is a review point, not proof of a bug or a hosted service result.</desc>
+<rect width="960" height="300" rx="16" fill="#101827"/>
+<g font-family="system-ui, sans-serif" text-anchor="middle">
+<text x="480" y="34" fill="#e5edf7" font-size="20" font-weight="600">Two valid changes. One shared call contract.</text>
+<rect x="24" y="62" width="276" height="95" rx="10" fill="#1c2a40" stroke="#486283"/>
+<text x="162" y="90" fill="#c9ddff" font-size="16">Change A · pricing.py</text>
+<text x="162" y="117" fill="#ffffff" font-size="15">Make fee keyword-only</text>
+<text x="162" y="141" fill="#91dfb9" font-size="14">Standalone run: pass</text>
+<rect x="660" y="62" width="276" height="95" rx="10" fill="#1c2a40" stroke="#486283"/>
+<text x="798" y="90" fill="#c9ddff" font-size="16">Change B · checkout.py</text>
+<text x="798" y="117" fill="#ffffff" font-size="15">Pass fee positionally</text>
+<text x="798" y="141" fill="#91dfb9" font-size="14">Standalone run: pass</text>
+<path d="M300 111 H366 M594 111 H660" stroke="#8ca4c8" stroke-width="2"/>
+<rect x="366" y="75" width="228" height="72" rx="10" fill="#15362d" stroke="#3d9f7a"/>
+<text x="480" y="104" fill="#a7f1cf" font-size="16">Git: clean merge</text>
+<text x="480" y="128" fill="#d4e9df" font-size="13">Different files</text>
+<rect x="120" y="181" width="720" height="47" rx="10" fill="#3c301d" stroke="#bb9453"/>
+<text x="480" y="211" fill="#ffe1a7" font-size="16">Core: call/import relationship observed → inspect together</text>
+<text x="480" y="260" fill="#ffb5b7" font-size="17">Combined Python run: TypeError</text>
+<text x="480" y="285" fill="#9bacbf" font-size="12">Local synthetic demonstration · relationship ≠ bug verdict · hosted App suspended</text>
+</g></svg>

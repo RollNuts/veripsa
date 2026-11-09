@@ -1,0 +1,186 @@
+{
+  "demo": "structural-overlap-v1",
+  "scope": "Synthetic local fixtures; relationship evidence, not PR safety or correctness.",
+  "hosted_signal": "not observed",
+  "analysis": "Existing extractor and coarse offline coupled_pairs; not the database PR gate.",
+  "cases": [
+    {
+      "name": "function_contract",
+      "changed_files": {
+        "change_a": [
+          "billing/pricing.py"
+        ],
+        "change_b": [
+          "web/checkout.py"
+        ]
+      },
+      "git_merge": "clean",
+      "relationship": {
+        "status": "observed",
+        "kinds": [
+          "call",
+          "import"
+        ],
+        "file_pairs": [
+          {
+            "files": [
+              "billing/pricing.py",
+              "web/checkout.py"
+            ],
+            "kinds": [
+              "call",
+              "import"
+            ]
+          }
+        ]
+      },
+      "individual": {
+        "change_a": {
+          "status": "passed",
+          "return_value": 105
+        },
+        "change_b": {
+          "status": "passed",
+          "return_value": 105
+        }
+      },
+      "integrated": {
+        "status": "failed",
+        "error_type": "TypeError"
+      }
+    },
+    {
+      "name": "compatible_related",
+      "changed_files": {
+        "change_a": [
+          "billing/pricing.py"
+        ],
+        "change_b": [
+          "web/checkout.py"
+        ]
+      },
+      "git_merge": "clean",
+      "relationship": {
+        "status": "observed",
+        "kinds": [
+          "call",
+          "import"
+        ],
+        "file_pairs": [
+          {
+            "files": [
+              "billing/pricing.py",
+              "web/checkout.py"
+            ],
+            "kinds": [
+              "call",
+              "import"
+            ]
+          }
+        ]
+      },
+      "individual": {
+        "change_a": {
+          "status": "passed",
+          "return_value": 105
+        },
+        "change_b": {
+          "status": "passed",
+          "return_value": 205
+        }
+      },
+      "integrated": {
+        "status": "passed",
+        "return_value": 205
+      }
+    },
+    {
+      "name": "unrelated",
+      "changed_files": {
+        "change_a": [
+          "billing/pricing.py"
+        ],
+        "change_b": [
+          "web/banner.py"
+        ]
+      },
+      "git_merge": "clean",
+      "relationship": {
+        "status": "not_observed",
+        "kinds": [],
+        "file_pairs": []
+      },
+      "individual": {
+        "change_a": {
+          "status": "passed",
+          "return_value": 105
+        },
+        "change_b": {
+          "status": "passed",
+          "return_value": 105
+        }
+      },
+      "integrated": {
+        "status": "passed",
+        "return_value": 105
+      }
+    },
+    {
+      "name": "dynamic_lookup",
+      "changed_files": {
+        "change_a": [
+          "billing/pricing.py"
+        ],
+        "change_b": [
+          "web/checkout.py"
+        ]
+      },
+      "git_merge": "clean",
+      "relationship": {
+        "status": "not_observed",
+        "kinds": [],
+        "file_pairs": []
+      },
+      "individual": {
+        "change_a": {
+          "status": "passed",
+          "return_value": 105
+        },
+        "change_b": {
+          "status": "passed",
+          "return_value": 105
+        }
+      },
+      "integrated": {
+        "status": "failed",
+        "error_type": "TypeError"
+      }
+    }
+  ],
+  "probes": [
+    {
+      "name": "api_route",
+      "files": [
+        "api/orders.py",
+        "client/orders.ts"
+      ],
+      "status": "observed",
+      "evidence_kind": "route"
+    },
+    {
+      "name": "config_key",
+      "files": [
+        "billing/fee.py",
+        "web/summary.py"
+      ],
+      "status": "observed",
+      "evidence_kind": "config"
+    }
+  ],
+  "limitations": [
+    "A structural relationship can exist when the combined change works.",
+    "Dynamic module/symbol lookup can hide a relationship even when the combined change fails.",
+    "not_observed is not Clear, no dependency, or permission to merge.",
+    "Route/config probes parse synthetic source only; they do not run application frameworks."
+  ]
+}

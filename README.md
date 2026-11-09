@@ -1,26 +1,74 @@
 # Veripsa Core
 
-> **Public source mirror.** Production credentials, provider identifiers, deployment
-> receipts, incident records, private CI history, and mutation workflows are deliberately
-> excluded. Repository visibility is not an availability signal for the hosted service.
->
-> **Hosted service status:** intentionally suspended as of 2026-08-18. Do not install
-> the GitHub App expecting webhook processing until an explicit resumption notice is
-> published. Offline evaluation remains available.
+**See when parallel pull requests change related code before they land.**
 
-GitHub App for pre-merge PR traffic control in repositories where AI coding
-agents and humans open pull requests in parallel.
+You ask one coding agent to change an API and another to update its caller.
+Git may merge their different files cleanly while the combined code stops
+working. Veripsa Core extracts structural relationships to make those shared
+review points visible. Its GitHub App implementation maintains open-PR traffic
+signals as work changes.
 
-Two agents open pull requests against the same repo. Each looks fine on its own,
-and each passes review and CI. They touch the same code, land in the wrong order,
-and `main` breaks anyway. Veripsa Core watches the traffic **between open pull
-requests** while there is still time to coordinate, and reports it as a GitHub
-check and — when there is traffic worth briefing — a PR comment.
+Built by [RollNuts](https://github.com/RollNuts). **[日本語の入口](docs/README.ja.md)**
 
-This repository contains the engine and webhook runtime. Start with the
-[offline evaluator](#offline-evaluation) to inspect the signal locally. Product
-scope is recorded in [`docs/PRODUCT_FACTS.md`](./docs/PRODUCT_FACTS.md); security
-and data boundaries are documented in [`SECURITY.md`](./SECURITY.md).
+**Available now:** local analysis, reproducible demos, and source.
+**Hosted GitHub App:** intentionally suspended since **2026-08-18**. Installing
+the App does not establish working webhook processing; a resumption would need
+an explicit announcement. [Current scope](docs/PRODUCT_FACTS.md).
+
+![Two separately valid changes merge cleanly, but their shared call contract needs review](docs/assets/structural-overlap.svg)
+
+## Start here
+
+| Time | Question | Entry point |
+| --- | --- | --- |
+| 30 seconds | What problem does this address? | The example above: clean text merge, shared structural contract. |
+| 3 minutes | Can I reproduce it without an account or paid API? | [Local structural-overlap demo](examples/structural-overlap/README.md): two valid branches, an actual Git merge, and Core's observed relationship. |
+| 10 minutes | What does the evidence mean? | [Architecture and engineering choices](ARCHITECTURE.md), [data boundary](SECURITY.md#content-free-posture), and [pinned Flask history evaluation](docs/OFFLINE_EXAMPLE.md). |
+
+```sh
+git clone https://github.com/RollNuts/veripsa.git
+cd veripsa
+python3.12 examples/structural-overlap/demo.py
+```
+
+Requires Git and Python 3.12, with no added Python packages, account, database,
+model call, or hosted service. The demo creates disposable local repositories;
+it does not merge into your checkout. Its JSON report contains relative paths,
+relationship evidence, and execution outcomes, not source bodies.
+
+### What the local demo establishes
+
+| Synthetic case | Git merge | Core relationship | Combined execution |
+| --- | --- | --- | --- |
+| Function call contract changes | Clean | Observed | TypeError |
+| Compatible changes to related code | Clean | Observed | Pass |
+| Changes in unrelated files | Clean | Not observed | Pass |
+| Dynamic lookup outside this static resolver | Clean | Not observed | TypeError |
+
+Each branch runs successfully on its own. The first case supplies a useful
+review point; the second shows that a relationship is not a bug verdict; the
+last exposes a missed relationship. This is a local demonstration using the
+existing extractor and the offline evaluator's coarse adjacency helper, not a
+hosted PR check or an execution of the PostgreSQL PR-decision pipeline.
+[Commands, actual output, API/config probes, and limits](examples/structural-overlap/README.md).
+
+### Use the existing work
+
+- **History evaluation:** the [Flask example](docs/OFFLINE_EXAMPLE.md) compares
+  structural relationships with past co-change. It measures a different question
+  from the synthetic merge demo.
+- **AI-agent queries:** the [read-only MCP adapter and Codex example](https://github.com/RollNuts/zenn-content/tree/89fe0fe12258c827a9e7fc54cb12fc96401018de/examples/core-local-mcp)
+  live in a separate repository. The adapter reads a fixed snapshot; it is not a
+  shipped Core MCP product or an automatic merge controller. The SDK-only path
+  is model-free; the optional Codex example uses the user's model allowance.
+- **Author and rationale:** [RollNuts](https://github.com/RollNuts) maintains this
+  public engineering work. [日本語の背景・発信素材](docs/PUBLISHING_KIT.ja.md)
+  records the problem, design decisions, and reproducible findings. Another
+  public work, [Mihassei](https://github.com/RollNuts/mihassei-news), explores
+  static-site and RSS implementation; its purpose is separate from PR traffic.
+
+The sections below describe the implemented GitHub App contract. Source code
+and historical behavior do not establish hosted availability.
 
 ---
 
@@ -210,6 +258,10 @@ directories for a substantive evaluation.
 ---
 
 ## Status
+
+This is a public source mirror. Production credentials, provider identifiers,
+deployment receipts, incident records, private CI history, and production
+mutation workflows are intentionally excluded.
 
 - The engine, webhook runtime, and GitHub check/comment renderer source are included.
   The public CI runs a content-free publication boundary and focused unit tests;

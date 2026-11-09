@@ -8,7 +8,17 @@ This file is the first place to update when a public Veripsa Core product fact c
 
 Use it to keep README, public documentation, support snippets, and repository copy aligned.
 
-Last reviewed: 2026-07-21.
+Product contract last reviewed: 2026-07-21.
+Maintenance objective updated: 2026-11-09.
+
+## Current maintenance objective
+
+The current work prioritizes useful engineering, reproducible local evidence,
+and clear public explanations under the authorship of [RollNuts](https://github.com/RollNuts).
+The goal is a technical asset that another developer can understand, try, and
+challenge. Revenue, enterprise sales, new billing flows, and restarting the
+hosted App are outside this improvement scope. The implemented product category
+and data boundary below remain unchanged.
 
 ## How to use this file
 

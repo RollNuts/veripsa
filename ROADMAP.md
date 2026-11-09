@@ -85,8 +85,7 @@ Direction-only — code may not be started yet.
   same-owner shadow evidence is in.
 - **Unity / C# extractor coverage.** Extend the unified extractor's
   language coverage to Unity-flavoured C# (`.cs` + meta files + ScriptableObject
-  references). Today's language matrix is listed in the README "How it works"
-  section.
+  references). The current language scope is listed in the [README](README.md#current-scope).
 - **Observability hardening.** Expand the watchdog → alert classes and the
   `/healthz` / `/readyz` / `/freshz` surface so that quiet-failure modes
   (a single tenant's graph going stale; a single language's extractor
@@ -120,6 +119,6 @@ right shape.
 - **Becoming an AI code reviewer.** Veripsa Core does not review the code
   inside a PR (CodeRabbit / Greptile / Qodo do that). It coordinates
   *between* PRs.
-- **Off-Marketplace checkout for the GitHub App.** Distribution is the free
-  GitHub App install today. If paid plans are introduced for the GitHub App,
-  GitHub Marketplace is the expected billing path.
+- **Off-Marketplace checkout for the GitHub App.** The hosted App is suspended,
+  so there is no active install offer. Historical Marketplace plans are outside
+  the current local-tool and technical-asset work.
