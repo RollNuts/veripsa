@@ -51,6 +51,9 @@ jobs:
       - name: Reproduce local structural-overlap evidence
         run: python3 -m unittest discover -s tests -p 'test_structural_overlap_demo.py' -v
 
+      - name: Check synthetic review-pair scoring and measurement boundaries
+        run: python3 -m unittest discover -s tests -p 'test_structural_overlap_benchmark.py' -v
+
       - name: Run credential lifecycle leak test
         run: python3 tests/test_auth_lifecycle.py
 
