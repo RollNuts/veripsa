@@ -84,7 +84,7 @@ include/excludeはcall site、route、worker recordの出力対象を選びま�
 
 raw argument expressionはcallのtop-level argumentだけです。receiverまたは1 expressionが320文字を超える場合は本文を保存せず`null`にします。
 
-Ruby/Rails audit indexは`hunt-ruby-rails-v1`をproducer versionとして宣言します。
+Ruby/Rails audit indexは`hunt-ruby-rails-v2`をproducer versionとして宣言します（resource内のstatic module scope合成を含む。output schemaは変更しません）。固定Core commit `fcb633eadd9b205a82ed605384def4a9f6189f9d`による既存のpublic caseはv1の過去記録です。
 route/auth/Sidekiq/execution-pathの抽出・解決規則またはrecord schemaを変更する場合に
 versionを更新します。docs/testだけの変更やbyte-identical refactorでは更新しません。
 
@@ -113,7 +113,11 @@ member collection
 
 controller/actionは、fully-qualified controller classとinstance methodの組にexactly one local definitionがある場合だけfile/lineへ接続します。0件または複数件ならroute recordを残し、controller/action hopは未解決にします。
 
-dynamic positional/path/controller/module option、dynamic target、unsupported DSL call/block、bare `draw` block、明示receiver付きdecoyは推測せず、low confidence recordとwarningへ落とします。transparentに展開する`draw`は明示的な`Rails.application.routes.draw`だけです。resource内へ入れ子にしたnamespace/scopeはPhase 2ではpath contextを合成せず、未解決です。
+dynamic positional/path/controller/module option、dynamic target、unsupported DSL call/block、bare `draw` block、明示receiver付きdecoyは推測せず、low confidence recordとwarningへ落とします。transparentに展開する`draw`は明示的な`Rails.application.routes.draw`だけです。
+
+resource内の`scope module: :name`（またはstatic string）のみ、親resourceのnested URL prefixとcontroller moduleを引き継ぎ、直下の`resources`/`resource`を合成します。moduleは相対的な小文字のunderscore名（`/`区切り可）、optionは重複・splatのない`module`1件に限定します。member/collection内のscope、path付きscope、namespace、およびこのmodule scope直下のcustom verbや別blockは未解決です。親resourceのdefault controllerをmodule配下のcustom routeへ誤用しないため、この限定を設けています。controller/actionへの接続には引き続き選択範囲内の一意なlocal definitionが必要です。これはroute navigationの拡張であり、callbackやauthorizationの正しさを判定しません。
+
+新しいmodule合成には、祖先resource/namespace/scopeのoptionも重複・splatなく読めることを要求します。祖先scopeのoptionは既存のstatic `path`/`module`、およびliteral `defaults: { format: ... }`に限定します。未知の祖先optionから推測したcontextを、新対応のrouteへhigh confidenceで引き継ぎません。この追加guardは新module合成の入口に作用し、旧DSL全体の対応範囲を拡張するものではありません。
 
 `config/routes.rb`以外の`config/routes/**`/`*_routes.rb`は、`draw`されたscopeを証明できないためroute recordを作ってもinclusion context unknownとしてlow/unresolvedにし、controller actionやexecution pathへ確定接続しません。
 

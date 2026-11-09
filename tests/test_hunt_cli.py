@@ -564,7 +564,7 @@ def test_artifacts_manifest_and_single_build(work: Path) -> None:
     assert manifest["exact_command"] == list(exact_command)
     assert manifest["extractor_versions"] == {
         "rich_graph": "fixture-rich-graph-v7",
-        "ruby_rails_audit_index": "hunt-ruby-rails-v1",
+        "ruby_rails_audit_index": "hunt-ruby-rails-v2",
     }
     assert manifest["graph_schema_contract_version"] == 42
     assert manifest["node_count"] == 2

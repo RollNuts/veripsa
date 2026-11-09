@@ -143,7 +143,7 @@ def _check_schema(indexes: dict[str, Any]) -> None:
     }
     missing = expected - set(indexes)
     assert not missing, f"index result missing keys: {sorted(missing)}"
-    assert indexes["extractor_version"] == "hunt-ruby-rails-v1"
+    assert indexes["extractor_version"] == "hunt-ruby-rails-v2"
     assert isinstance(indexes["rails_routes"], list)
     assert isinstance(indexes["authorization_calls"], list)
     assert isinstance(indexes["execution_paths"], list)
@@ -281,6 +281,90 @@ def _check_routes(indexes: dict[str, Any]) -> None:
             and not _first(record, "unresolved_reason")
             for record in routes
         ), f"dynamic option was incorrectly emitted as resolved: {unresolved}"
+
+
+def _check_nested_static_module_scope(_indexes: dict[str, Any]) -> None:
+    builder = _load_builder()
+    assert builder is not None
+    fixture = ROOT / "tests" / "fixtures" / "hunt_nested_module_scope"
+    indexes = builder(fixture, include_patterns=(), exclude_patterns=())
+    routes = indexes["rails_routes"]
+    route_source = (fixture / "config" / "routes.rb").read_text().splitlines()
+
+    def line_of(needle: str) -> int:
+        matches = [i for i, line in enumerate(route_source, 1) if needle in line]
+        assert len(matches) == 1, (needle, matches)
+        return matches[0]
+
+    jobs = _route(routes, "GET", "/api/v2/workspaces/:workspace_id/jobs", "index")
+    assert jobs["controller"] == "Api::V2::Workspaces::JobsController", jobs
+    assert jobs["namespace_stack"] == ["api", "v2", "workspaces"], jobs
+    assert jobs["source_line"] == line_of("resources :jobs, only: [:index, :create, :destroy]"), jobs
+    assert jobs["controller_file"] == "app/controllers/api/v2/workspaces/jobs_controller.rb", jobs
+    assert jobs["action_line"] == 2 and jobs["unresolved_reason"] is None, jobs
+    assert jobs["confidence"] == "high", jobs
+
+    for prefix in ("/api/v2/workspaces/:workspace_id", "/api/v2/workspace"):
+        quota = _route(routes, "GET", prefix + "/quota", "show")
+        assert quota["controller"] == "Api::V2::Workspaces::QuotasController", quota
+        assert quota["controller_file"] == "app/controllers/api/v2/workspaces/quotas_controller.rb", quota
+        assert quota["action_line"] == 2 and quota["unresolved_reason"] is None, quota
+
+    for verb, suffix, action in (("POST", "", "create"), ("DELETE", "/:id", "destroy")):
+        unresolved = _route(routes, verb, "/api/v2/workspaces/:workspace_id/jobs" + suffix, action)
+        assert unresolved["unresolved_reason"] and unresolved["confidence"] == "low", unresolved
+        assert unresolved["controller_file"] is None and unresolved["action_line"] is None, unresolved
+    assert "2 local definitions" in _route(routes, "POST", "/api/v2/workspaces/:workspace_id/jobs", "create")["unresolved_reason"]
+
+    for needle in (
+        "get :direct_action", "namespace :uncomposed", "resources :splatted",
+        "resources :duplicate,", "scope module: dynamic_module",
+        'scope module: :workspaces, path:', "scope module: :workspaces, **",
+        "scope module: :workspaces, module:", 'scope module: "/absolute"',
+    ):
+        route = _find(routes, needle, lambda r, line=line_of(needle): r["source_line"] == line)
+        assert route["confidence"] == "low" and route["unresolved_reason"], route
+        assert route["controller_file"] is None and route["action_line"] is None, route
+    assert not any(route.get("controller", "") in {
+        "Api::V2::Workspaces::Uncomposed::JobsController",
+        "Api::V2::Workspaces::DynamicJobsController",
+        "Api::V2::Workspaces::PathJobsController",
+    } for route in routes), routes
+
+    # An excluded duplicate definition must still prevent a falsely unique link.
+    filtered = builder(fixture, include_patterns=("config/routes.rb", "app/controllers/api/**"),
+                       exclude_patterns=("app/controllers/reopened_jobs_controller.rb",))
+    create = _route(filtered["rails_routes"], "POST", "/api/v2/workspaces/:workspace_id/jobs", "create")
+    assert create["controller_file"] is None and "2 local definitions" in create["unresolved_reason"], create
+
+    # Unparsed ancestor options cannot become trusted merely by entering a
+    # newly supported module scope. Also check a resource one level further up.
+    ancestor_headers = (
+        "resources :workspaces, **route_options",
+        'resources :workspaces, path: "first", path: "second"',
+        "namespace :outer, **route_options",
+        'scope "/outer", path: "/first", path: "/second"',
+        'scope "/outer", constraints: route_constraints',
+        "namespace :outer, defaults: { controller: :other }",
+    )
+    for header in ancestor_headers:
+        with tempfile.TemporaryDirectory(prefix="hunt-nested-module-ancestor-") as temp:
+            target = Path(temp) / "fixture"
+            shutil.copytree(fixture, target)
+            source = (
+                "Rails.application.routes.draw do\n"
+                "  namespace :api do\n    namespace :v2 do\n"
+                f"      {header} do\n"
+                "        resources :workspaces, only: [] do\n"
+                "          scope module: :workspaces do\n"
+                "            resources :jobs, only: [:index]\n"
+                "          end\n        end\n      end\n    end\n  end\nend\n"
+            )
+            (target / "config/routes.rb").write_text(source)
+            guarded = builder(target, include_patterns=(), exclude_patterns=())
+        assert not any(r.get("source_line") == 7 for r in guarded["rails_routes"]), (header, guarded["rails_routes"])
+        assert any(r.get("source_line") == 6 and r.get("unresolved_reason") for r in guarded["rails_routes"]), header
+        assert not any(w.get("category") == "ruby_parse_error" for w in guarded["warnings"]), header
 
 
 def _check_authorization(indexes: dict[str, Any]) -> None:
@@ -880,6 +964,7 @@ def main() -> int:
     checks = [
         ("result schema", _check_schema),
         ("Rails route index", _check_routes),
+        ("nested static module scope", _check_nested_static_module_scope),
         ("authorization call index", _check_authorization),
         ("Sidekiq worker/enqueue index", _check_sidekiq),
         ("execution path integration", _check_execution_paths),
