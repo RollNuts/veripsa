@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Compare clean Git merges with Core's offline structural relationship evidence.
+"""Compare Git merges, code-graph evidence, and historical co-change locally.
 
 Only synthetic fixtures are executed, inside disposable repositories. This reuses
 the existing extractor and the offline evaluator's coarse adjacency projection;
 it does not run the database PR gate or manufacture a hosted-service verdict.
+The histories are deliberately constructed contrasts, not an accuracy benchmark.
 """
 from __future__ import annotations
 
@@ -11,6 +12,7 @@ import argparse
 import json
 import os
 from pathlib import Path
+import shlex
 import shutil
 import subprocess
 import sys
@@ -40,6 +42,17 @@ except Exception as error:
     print(json.dumps({"status": "failed", "error_type": type(error).__name__}))
     raise SystemExit(1)
 print(json.dumps({"status": "passed", "return_value": value}))
+'''
+READ_COCHANGE = '''import inspect, json, sys
+sys.path.insert(0, sys.argv[1])
+import _cg_cochange as CC
+defaults = inspect.signature(CC.cochange_pairs).parameters
+parameters = {name: defaults[name].default for name in
+              ("window", "max_commit_files", "min_support", "min_prob", "min_lift", "max_pairs")}
+print(json.dumps({"parameters": parameters,
+                  "filtered": CC.cochange_pairs(sys.argv[2], timeout=10),
+                  "raw": CC.cochange_pairs(sys.argv[2], min_support=1, min_prob=0.0,
+                                            min_lift=0.0, timeout=10)}))
 '''
 
 
@@ -120,6 +133,73 @@ def _relationship(graph: dict, changed_a: list[str], changed_b: list[str]) -> di
             'file_pairs': selected}
 
 
+def _seed_history(name: str, git: FixtureGit) -> str:
+    if name == 'function_contract':
+        return 'short_history'
+    peer = BANNER if name == 'unrelated' else CHECKOUT
+    # Comments are intentionally edited together: the resulting association can
+    # describe a batching habit, not a functional dependency or causal effect.
+    for index in range(5):
+        for relative in (PRICING, peer):
+            path = git.root / relative
+            path.write_text(path.read_text(encoding='utf-8')
+                            + f'# Synthetic batch marker {index}\n', encoding='utf-8')
+        git.commit()
+    for index in range(8):
+        _write(git.root, {'docs/progress.txt': f'Synthetic unrelated update {index}\n'})
+        git.commit()
+    return 'incidental_batch_updates' if name == 'unrelated' else 'repeated_joint_updates'
+
+
+def _cochange(git: FixtureGit, changed_a: list[str], changed_b: list[str]) -> dict:
+    # The existing producer invokes the executable named git. A private PATH
+    # wrapper selects the same --git binary inside a child process; no global
+    # configuration or parent environment is modified, and no math is copied.
+    binary_dir = git.root.parent / 'history-git-bin'
+    binary_dir.mkdir(exist_ok=True)
+    executable = shutil.which(git.executable) or git.executable
+    link = binary_dir / 'git'
+    if link.is_symlink():
+        raise DemoError('Unexpected private Git wrapper path.')
+    if not link.exists():
+        with link.open('x', encoding='utf-8') as script:
+            script.write('#!/bin/sh\nexec ' + shlex.quote(str(Path(executable).resolve())) + ' "$@"\n')
+        link.chmod(0o700)
+    environment = dict(git.environment)
+    environment['PATH'] = str(binary_dir) + os.pathsep + environment.get('PATH', os.defpath)
+    try:
+        result = subprocess.run([sys.executable, '-B', '-I', '-S', '-c', READ_COCHANGE,
+                                 str(ROOT), str(git.root)], cwd=git.root, env=environment,
+                                capture_output=True, text=True, timeout=30,
+                                stdin=subprocess.DEVNULL, check=False)
+        data = json.loads(result.stdout)
+    except (OSError, ValueError, subprocess.SubprocessError):
+        raise DemoError('Historical co-change extraction could not complete.') from None
+    if result.returncode:
+        raise DemoError('Historical co-change extraction failed.')
+    selected_pairs = {frozenset((a, b)) for a in changed_a for b in changed_b if a != b}
+    observed = {frozenset((row['a'], row['b'])) for row in data['filtered']}
+    pairs = []
+    for row in data['raw']:
+        key = frozenset((row['a'], row['b']))
+        if key not in selected_pairs:
+            continue
+        pairs.append({field: row[field] for field in
+                      ('a', 'b', 'co', 'n_a', 'n_b', 'n_total',
+                       'p_b_given_a', 'p_a_given_b', 'strength', 'lift')})
+        pairs[-1]['passes_default_filters'] = key in observed
+    return {'status': 'observed' if selected_pairs & observed else 'not_observed',
+            'parameters': data['parameters'], 'file_pairs': pairs}
+
+
+def _combined(structural: dict, cochange: dict) -> dict:
+    graph_seen = structural['status'] == 'observed'
+    history_seen = cochange['status'] == 'observed'
+    return {'union': 'observed' if graph_seen or history_seen else 'not_observed',
+            'corroborated': 'observed' if graph_seen and history_seen else 'not_observed',
+            'scope': 'Offline set comparison only; not the database PR policy.'}
+
+
 def _case(name: str, temporary: Path, git_path: str) -> dict:
     root = temporary / name
     root.mkdir()
@@ -130,9 +210,12 @@ def _case(name: str, temporary: Path, git_path: str) -> dict:
     git.call('init', '--quiet')
     git.call('symbolic-ref', 'HEAD', 'refs/heads/main')
     git.commit()
+    history_profile = _seed_history(name, git)
     # Analyze the common base, as a fixed source snapshot. Never infer the full
     # database gate's PR verdict from this offline adjacency approximation.
     graph = BT.X.build_graph(str(root))
+    peer = BANNER if name == 'unrelated' else CHECKOUT
+    cochange = _cochange(git, [PRICING], [peer])
     git.call('checkout', '--quiet', '-b', 'change-a')
     pricing = (BASE_PRICING.replace('fee=5', 'fee=7') if name == 'compatible_related'
                else BASE_PRICING.replace('amount, fee=5', 'amount, *, fee=5'))
@@ -155,8 +238,10 @@ def _case(name: str, temporary: Path, git_path: str) -> dict:
     changed_b = git.call('diff', '--name-only', 'main...HEAD').splitlines()
     git.call('merge', '--quiet', '--no-edit', 'change-a')
     integrated = _runtime(root)
+    structural = _relationship(graph, changed_a, changed_b)
     return {'name': name, 'changed_files': {'change_a': changed_a, 'change_b': changed_b},
-            'git_merge': 'clean', 'relationship': _relationship(graph, changed_a, changed_b),
+            'git_merge': 'clean', 'relationship': structural, 'history_profile': history_profile,
+            'cochange': cochange, 'combined': _combined(structural, cochange),
             'individual': {'change_a': individual_a, 'change_b': individual_b},
             'integrated': integrated}
 
@@ -209,6 +294,16 @@ def _check_report(report: dict) -> None:
                 and case['individual']['change_b'] == {'status': 'passed', 'return_value': value_b}
                 and case['integrated'] == integrated):
             raise DemoError('The observed fixture matrix differs from the expected results.')
+        history_expected = 'not_observed' if case['name'] == 'function_contract' else 'observed'
+        cochange = case['cochange']
+        if cochange['status'] != history_expected or len(cochange['file_pairs']) != 1:
+            raise DemoError('The observed historical evidence differs from the fixture matrix.')
+        pair = cochange['file_pairs'][0]
+        expected_counts = (1, 1, 1, 1) if case['name'] == 'function_contract' else (6, 6, 6, 14)
+        if tuple(pair[key] for key in ('co', 'n_a', 'n_b', 'n_total')) != expected_counts:
+            raise DemoError('The measured historical counts differ from the constructed history.')
+        if case['combined'] != _combined(case['relationship'], cochange):
+            raise DemoError('The offline evidence comparison disagrees with its measured inputs.')
     if (len(report['probes']) != 2
             or any(probe['status'] != 'observed' for probe in report['probes'])):
         raise DemoError('An expected static relationship probe was not observed.')
@@ -221,14 +316,19 @@ def run_demo(git_path: str) -> dict:
             'function_contract', 'compatible_related', 'unrelated', 'dynamic_lookup')]
         probes = _probes(temporary)
     report = {
-        'demo': 'structural-overlap-v1',
+        'demo': 'structural-overlap-v2',
         'scope': 'Synthetic local fixtures; relationship evidence, not PR safety or correctness.',
         'hosted_signal': 'not observed',
-        'analysis': 'Existing extractor and coarse offline coupled_pairs; not the database PR gate.',
+        'analysis': ('Existing extractor, coarse offline coupled_pairs, and _cg_cochange.cochange_pairs; '
+                     'not the database PR gate.'),
         'cases': cases, 'probes': probes,
         'limitations': [
             'A structural relationship can exist when the combined change works.',
-            'Dynamic module/symbol lookup can hide a relationship even when the combined change fails.',
+            'Dynamic module/symbol lookup can hide a code-graph relationship; history may add evidence.',
+            'Short histories cannot meet the default co-change support floor.',
+            'Constructed comment-only co-edits can pass co-change filters without a functional dependency.',
+            'Union and corroboration are offline evidence comparisons, not implemented merge-control policies.',
+            'These constructed contrasts measure no general precision, recall, causation, or time saved.',
             'not_observed is not Clear, no dependency, or permission to merge.',
             'Route/config probes parse synthetic source only; they do not run application frameworks.',
         ],

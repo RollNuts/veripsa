@@ -1,8 +1,8 @@
 {
-  "demo": "structural-overlap-v1",
+  "demo": "structural-overlap-v2",
   "scope": "Synthetic local fixtures; relationship evidence, not PR safety or correctness.",
   "hosted_signal": "not observed",
-  "analysis": "Existing extractor and coarse offline coupled_pairs; not the database PR gate.",
+  "analysis": "Existing extractor, coarse offline coupled_pairs, and _cg_cochange.cochange_pairs; not the database PR gate.",
   "cases": [
     {
       "name": "function_contract",
@@ -33,6 +33,38 @@
             ]
           }
         ]
+      },
+      "history_profile": "short_history",
+      "cochange": {
+        "status": "not_observed",
+        "parameters": {
+          "window": 800,
+          "max_commit_files": 40,
+          "min_support": 5,
+          "min_prob": 0.3,
+          "min_lift": 2.0,
+          "max_pairs": 5000
+        },
+        "file_pairs": [
+          {
+            "a": "billing/pricing.py",
+            "b": "web/checkout.py",
+            "co": 1,
+            "n_a": 1,
+            "n_b": 1,
+            "n_total": 1,
+            "p_b_given_a": 1.0,
+            "p_a_given_b": 1.0,
+            "strength": 1.0,
+            "lift": 1.0,
+            "passes_default_filters": false
+          }
+        ]
+      },
+      "combined": {
+        "union": "observed",
+        "corroborated": "not_observed",
+        "scope": "Offline set comparison only; not the database PR policy."
       },
       "individual": {
         "change_a": {
@@ -79,6 +111,38 @@
           }
         ]
       },
+      "history_profile": "repeated_joint_updates",
+      "cochange": {
+        "status": "observed",
+        "parameters": {
+          "window": 800,
+          "max_commit_files": 40,
+          "min_support": 5,
+          "min_prob": 0.3,
+          "min_lift": 2.0,
+          "max_pairs": 5000
+        },
+        "file_pairs": [
+          {
+            "a": "billing/pricing.py",
+            "b": "web/checkout.py",
+            "co": 6,
+            "n_a": 6,
+            "n_b": 6,
+            "n_total": 14,
+            "p_b_given_a": 1.0,
+            "p_a_given_b": 1.0,
+            "strength": 1.0,
+            "lift": 2.33,
+            "passes_default_filters": true
+          }
+        ]
+      },
+      "combined": {
+        "union": "observed",
+        "corroborated": "observed",
+        "scope": "Offline set comparison only; not the database PR policy."
+      },
       "individual": {
         "change_a": {
           "status": "passed",
@@ -110,6 +174,38 @@
         "kinds": [],
         "file_pairs": []
       },
+      "history_profile": "incidental_batch_updates",
+      "cochange": {
+        "status": "observed",
+        "parameters": {
+          "window": 800,
+          "max_commit_files": 40,
+          "min_support": 5,
+          "min_prob": 0.3,
+          "min_lift": 2.0,
+          "max_pairs": 5000
+        },
+        "file_pairs": [
+          {
+            "a": "billing/pricing.py",
+            "b": "web/banner.py",
+            "co": 6,
+            "n_a": 6,
+            "n_b": 6,
+            "n_total": 14,
+            "p_b_given_a": 1.0,
+            "p_a_given_b": 1.0,
+            "strength": 1.0,
+            "lift": 2.33,
+            "passes_default_filters": true
+          }
+        ]
+      },
+      "combined": {
+        "union": "observed",
+        "corroborated": "not_observed",
+        "scope": "Offline set comparison only; not the database PR policy."
+      },
       "individual": {
         "change_a": {
           "status": "passed",
@@ -140,6 +236,38 @@
         "status": "not_observed",
         "kinds": [],
         "file_pairs": []
+      },
+      "history_profile": "repeated_joint_updates",
+      "cochange": {
+        "status": "observed",
+        "parameters": {
+          "window": 800,
+          "max_commit_files": 40,
+          "min_support": 5,
+          "min_prob": 0.3,
+          "min_lift": 2.0,
+          "max_pairs": 5000
+        },
+        "file_pairs": [
+          {
+            "a": "billing/pricing.py",
+            "b": "web/checkout.py",
+            "co": 6,
+            "n_a": 6,
+            "n_b": 6,
+            "n_total": 14,
+            "p_b_given_a": 1.0,
+            "p_a_given_b": 1.0,
+            "strength": 1.0,
+            "lift": 2.33,
+            "passes_default_filters": true
+          }
+        ]
+      },
+      "combined": {
+        "union": "observed",
+        "corroborated": "not_observed",
+        "scope": "Offline set comparison only; not the database PR policy."
       },
       "individual": {
         "change_a": {
@@ -179,7 +307,11 @@
   ],
   "limitations": [
     "A structural relationship can exist when the combined change works.",
-    "Dynamic module/symbol lookup can hide a relationship even when the combined change fails.",
+    "Dynamic module/symbol lookup can hide a code-graph relationship; history may add evidence.",
+    "Short histories cannot meet the default co-change support floor.",
+    "Constructed comment-only co-edits can pass co-change filters without a functional dependency.",
+    "Union and corroboration are offline evidence comparisons, not implemented merge-control policies.",
+    "These constructed contrasts measure no general precision, recall, causation, or time saved.",
     "not_observed is not Clear, no dependency, or permission to merge.",
     "Route/config probes parse synthetic source only; they do not run application frameworks."
   ]

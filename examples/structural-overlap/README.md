@@ -1,12 +1,14 @@
 # A clean Git merge can still need structural review
 
-This free, local example puts three observations next to each other:
+This free, local example puts four observations next to each other:
 
 1. the result of merging two real synthetic Git branches;
 2. Core's existing static file-relationship evidence;
-3. the result of executing each change alone and then together.
+3. historical file pairs from the existing Co-change producer;
+4. the result of executing each change alone and then together.
 
-It needs Git and Python 3.12. No added Python packages, account, database,
+It needs a POSIX environment with Git and Python 3.12. The private Git shim uses
+`/bin/sh`; this change was verified locally on macOS. Windows is not verified. No added Python packages, account, database,
 network call, model, or hosted App is used when running it. The hosted service
 remains suspended. The fixtures are invented code generated into disposable
 temporary repositories; your current checkout is not merged or edited.
@@ -47,19 +49,46 @@ predict the `TypeError`: the separate Python execution observes that outcome.
 
 The cases include the counterexamples needed to interpret the signal:
 
-| Case | Each branch alone | Git merge | Static relationship | Combined run |
-| --- | --- | --- | --- | --- |
-| `function_contract` | Pass | Clean | Observed: call/import | TypeError |
-| `compatible_related` | Pass | Clean | Observed: call/import | Pass, 205 |
-| `unrelated` | Pass | Clean | Not observed | Pass, 105 |
-| `dynamic_lookup` | Pass | Clean | Not observed | TypeError |
+| Case | Each branch | Git | Code graph | Co-change | Combined run |
+| --- | --- | --- | --- | --- | --- |
+| `function_contract` | Pass | Clean | Observed | Not observed | TypeError |
+| `compatible_related` | Pass | Clean | Observed | Observed | Pass, 205 |
+| `unrelated` | Pass | Clean | Not observed | Observed | Pass, 105 |
+| `dynamic_lookup` | Pass | Clean | Not observed | Observed | TypeError |
 
-`compatible_related` changes the default fee and the explicitly supplied
-amount without breaking the shared contract. It shows why a relationship
-warning is not a claim that the change is defective. The dynamic case uses
-`importlib` and `getattr`; the current static projection misses that relationship
-even though the integrated code fails. `not_observed` is never `Clear` or proof
-of no dependency.
+The first case has only its initial commit. Its new call-contract mismatch has
+static evidence but cannot meet the existing history support floor. The other
+cases add five comment-only joint edits after the initial commit, plus eight
+unrelated updates: 6 co-edits in 14 commits. This deliberately constructed
+history demonstrates interpretation, not general precision or recall.
+
+`compatible_related` preserves the call contract, so both signals can be present
+while the combined change works. `unrelated` edits `pricing.py` and `banner.py`
+together only as a batching habit; history still associates them. The dynamic
+case uses `importlib` and `getattr`, which this static projection misses; the
+history provides a candidate review point. `not_observed` is never `Clear` or
+proof of no dependency.
+
+### Read history and combined evidence
+
+The runner calls the existing `_cg_cochange.cochange_pairs` twice: with the
+producer's defaults for selected candidates, and with relaxed thresholds to
+show the underlying synthetic counts. It reads default parameters from the
+function signature rather than duplicating the calculation. Current defaults
+include support 5, minimum probability 0.3, and lift 2. The JSON exposes the
+window, commit-size and pair limits, counts, directional probabilities, and
+whether each pair passed the default filters.
+
+Only the common-base history is analyzed. The subsequent branches and their
+merge are not mixed into the historical evidence. The observed probability
+and lift describe this constructed history, not causation or future failures.
+
+`combined.union` means either local candidate set contains this file pair;
+`combined.corroborated` means both do. Each case compares one pair. These are
+explicit offline set comparisons, not the App's PostgreSQL PR policy. In that
+policy, history can corroborate a narrowly suppressed static hub relationship;
+other historical partners are separate advisory hints. See the
+[implementation inventory](../../docs/ANALYSIS_ASSETS.md).
 
 ## Additional API and configuration probes
 
@@ -77,7 +106,7 @@ They do not establish full language coverage or API compatibility.
 ## Which implementation is reused
 
 [`demo.py`](demo.py) calls `code_graph_extract.build_graph` and
-`cochange_backtest.coupled_pairs` for file-level relationships, and the existing
+`cochange_backtest.coupled_pairs` for file-level relationships, `_cg_cochange.cochange_pairs` for history, and the existing
 route producer for the route probe. The adjacency helper is the offline
 evaluator's coarse approximation, not an execution of the PostgreSQL
 open-PR decision pipeline. No new conflict detector or production policy was

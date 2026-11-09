@@ -2,11 +2,16 @@
 
 **See when parallel pull requests change related code before they land.**
 
-You ask one coding agent to change an API and another to update its caller.
-Git may merge their different files cleanly while the combined code stops
-working. Veripsa Core extracts structural relationships to make those shared
-review points visible. Its GitHub App implementation maintains open-PR traffic
-signals as work changes.
+Veripsa Core began with a practical problem: frequent Git conflicts during
+parallel development. Along the way it produced a code graph, historical
+co-change analysis, and a persistent coordination runtime. The current work
+makes those assets understandable and reproducible, rather than starting a new
+hosted service or sales effort.
+
+Git may merge different files cleanly while the combined code stops working.
+Core's structural references and historical file relationships supply review
+points. Its GitHub App implementation maintains open-PR traffic as work changes;
+the same extraction can also be used locally. [Origin and current goal](docs/README.ja.md).
 
 Built by [RollNuts](https://github.com/RollNuts). **[日本語の入口](docs/README.ja.md)**
 
@@ -31,29 +36,32 @@ cd veripsa
 python3.12 examples/structural-overlap/demo.py
 ```
 
-Requires Git and Python 3.12, with no added Python packages, account, database,
+Requires a POSIX environment with Git and Python 3.12, with no added Python packages, account, database,
 model call, or hosted service. The demo creates disposable local repositories;
 it does not merge into your checkout. Its JSON report contains relative paths,
 relationship evidence, and execution outcomes, not source bodies.
 
 ### What the local demo establishes
 
-| Synthetic case | Git merge | Core relationship | Combined execution |
-| --- | --- | --- | --- |
-| Function call contract changes | Clean | Observed | TypeError |
-| Compatible changes to related code | Clean | Observed | Pass |
-| Changes in unrelated files | Clean | Not observed | Pass |
-| Dynamic lookup outside this static resolver | Clean | Not observed | TypeError |
+| Synthetic case | Git merge | Code graph | Co-change | Combined execution |
+| --- | --- | --- | --- | --- |
+| Function call contract, short history | Clean | Observed | Not observed | TypeError |
+| Compatible related changes | Clean | Observed | Observed | Pass |
+| Unrelated code, incidentally edited together | Clean | Not observed | Observed | Pass |
+| Dynamic lookup, repeated joint edits | Clean | Not observed | Observed | TypeError |
 
-Each branch runs successfully on its own. The first case supplies a useful
-review point; the second shows that a relationship is not a bug verdict; the
-last exposes a missed relationship. This is a local demonstration using the
-existing extractor and the offline evaluator's coarse adjacency helper, not a
-hosted PR check or an execution of the PostgreSQL PR-decision pipeline.
+Each branch runs successfully on its own. The first case supplies a structural
+review point before enough history exists. Repeated co-edits can supplement a
+missed static edge, but they can also describe a batching habit with no runtime
+problem. The JSON compares graph/history candidate sets and their union and
+intersection; it does not turn correlation into a causal or merge-safety verdict.
+It reuses the existing producers, not a new detector. The App's SQL corroboration
+policy is separate from this local set comparison.
 [Commands, actual output, API/config probes, and limits](examples/structural-overlap/README.md).
 
 ### Use the existing work
 
+- **Analysis inventory and DB choices:** [graph, Co-change, persistence, and tested boundaries](docs/ANALYSIS_ASSETS.md) maps existing functions and compares DB-free use, saved snapshots, and local PostgreSQL.
 - **History evaluation:** the [Flask example](docs/OFFLINE_EXAMPLE.md) compares
   structural relationships with past co-change. It measures a different question
   from the synthetic merge demo.

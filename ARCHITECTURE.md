@@ -6,13 +6,29 @@ and public explanations by [RollNuts](https://github.com/RollNuts). The hosted
 GitHub App remains suspended since 2026-08-18. No restart, revenue feature, or
 billing rollout is part of this work.
 
+## Origin and execution triggers
+
+The author describes frequent Git conflicts as the starting problem. Anticipated
+parallel AI development informed the work, but demand did not develop as quickly
+as expected. MCP was considered at the time as well. The GitHub App was chosen
+for event-triggered opportunities to inspect PR creation and updates without
+relying on an agent to remember a tool call. Webhook delivery and service health
+still affect execution; the App is not an absolute execution guarantee.
+
+The author's decision also considered the commercial outlook of standalone MCP
+and the cost and personal burden of hosting a server and database. Those are
+historical judgments, not claims of a failed or proven detection technology.
+Current maintenance values reusable engineering and public evidence. Development
+uses AI assistance; the author-provided motivation and the tests performed in
+this change are identified separately in the [background draft](docs/PUBLISHING_KIT.ja.md).
+
 ## Three layers to keep distinct
 
 1. **Extraction:** `code_graph_extract.build_graph` reads local files and emits
    references such as imports, calls, shared schema/config resources, and
    supported API contracts. Coverage depends on syntax and installed grammars.
 2. **Offline evidence:** the [synthetic demo](examples/structural-overlap/README.md)
-   uses that graph and `cochange_backtest.coupled_pairs` to expose file-level
+   uses that graph, `cochange_backtest.coupled_pairs`, and `_cg_cochange.cochange_pairs` to compare file-level
    review points next to actual Git and Python outcomes. That helper is a coarse
    approximation, not the PostgreSQL PR verdict. Separately, `evaluate.py`
    compares structural pairs with historical co-change on a local Git checkout.
@@ -66,6 +82,15 @@ whether an `action_required` conclusion holds a merge. Code review, CI, and
 merge queues retain their own responsibilities. Cross-repository coordination,
 automatic conflict fixing, autonomous merge, and a productized MCP are future
 work, not capabilities established by this demo.
+
+## Reuse and persistence choices
+
+The [analysis inventory](docs/ANALYSIS_ASSETS.md) maps the existing interfaces,
+actual graph/history combination, isolated SQL checks, and storage tradeoffs.
+DB-free extraction and a fixed JSON projection serve on-demand work. Existing
+local PostgreSQL preserves the App's governed state, generations, locks, and
+incremental updates when those are needed. No SQLite App backend or general
+union-based PR verdict is introduced by this change.
 
 ## Reference implementation outside the current work
 

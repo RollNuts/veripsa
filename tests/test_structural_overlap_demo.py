@@ -5,9 +5,11 @@ import importlib.util
 import json
 import os
 from pathlib import Path
+import shlex
 import shutil
 import subprocess
 import sys
+import tempfile
 import unittest
 from unittest.mock import patch
 
@@ -59,6 +61,63 @@ class StructuralOverlapDemoTests(unittest.TestCase):
         self.assertEqual(case['relationship']['status'], 'not_observed')
         self.assertEqual(case['integrated'], {'status': 'failed', 'error_type': 'TypeError'})
 
+    def test_short_history_does_not_pass_default_cochange_filters(self):
+        case = self.cases['function_contract']
+        history = case['cochange']
+        self.assertEqual(history['status'], 'not_observed')
+        self.assertEqual(history['parameters']['min_support'], 5)
+        self.assertEqual(history['parameters']['min_prob'], 0.3)
+        self.assertEqual(history['parameters']['min_lift'], 2.0)
+        pair = history['file_pairs'][0]
+        self.assertEqual((pair['co'], pair['n_a'], pair['n_b'], pair['n_total']), (1, 1, 1, 1))
+        self.assertFalse(pair['passes_default_filters'])
+        self.assertEqual(case['combined']['union'], 'observed')
+        self.assertEqual(case['combined']['corroborated'], 'not_observed')
+
+    def test_history_complements_the_dynamic_lookup_without_future_commits(self):
+        case = self.cases['dynamic_lookup']
+        self.assertEqual(case['relationship']['status'], 'not_observed')
+        self.assertEqual(case['cochange']['status'], 'observed')
+        pair = case['cochange']['file_pairs'][0]
+        # Counts come from the common base, before either change or their merge.
+        self.assertEqual((pair['co'], pair['n_a'], pair['n_b'], pair['n_total']), (6, 6, 6, 14))
+        self.assertEqual(pair['lift'], 2.33)
+        self.assertEqual(case['combined']['union'], 'observed')
+        self.assertEqual(case['combined']['corroborated'], 'not_observed')
+
+    def test_comment_batching_can_produce_a_noncausal_cochange_signal(self):
+        case = self.cases['unrelated']
+        self.assertEqual(case['history_profile'], 'incidental_batch_updates')
+        self.assertEqual(case['relationship']['status'], 'not_observed')
+        self.assertEqual(case['cochange']['status'], 'observed')
+        self.assertEqual(case['integrated']['status'], 'passed')
+
+    def test_corroborated_evidence_is_still_not_a_runtime_failure_prediction(self):
+        case = self.cases['compatible_related']
+        self.assertEqual(case['relationship']['status'], 'observed')
+        self.assertEqual(case['cochange']['status'], 'observed')
+        self.assertEqual(case['combined']['corroborated'], 'observed')
+        self.assertEqual(case['integrated']['status'], 'passed')
+
+    @unittest.skipUnless(os.name == 'posix', 'The local demo uses a POSIX Git wrapper.')
+    def test_selected_git_wrapper_with_spaces_and_quotes_reads_real_history(self):
+        with tempfile.TemporaryDirectory() as directory:
+            temporary = Path(directory)
+            selected = temporary / "selected git 'wrapper"
+            executable = shutil.which(self.git) or self.git
+            selected.write_text('#!/bin/sh\nexec ' + shlex.quote(str(Path(executable).resolve()))
+                                + ' "$@"\n', encoding='utf-8')
+            selected.chmod(0o700)
+            root = temporary / 'repo'
+            root.mkdir()
+            git = DEMO.FixtureGit(str(selected), root)
+            DEMO._write(root, {DEMO.PRICING: DEMO.BASE_PRICING, DEMO.CHECKOUT: DEMO.BASE_CHECKOUT})
+            git.call('init', '--quiet')
+            git.commit()
+            history = DEMO._cochange(git, [DEMO.PRICING], [DEMO.CHECKOUT])
+            self.assertEqual(history['file_pairs'][0]['co'], 1)
+            self.assertEqual(history['file_pairs'][0]['n_total'], 1)
+
     def test_existing_route_and_config_producers_are_exercised(self):
         self.assertEqual({probe['name']: probe['status'] for probe in self.report['probes']},
                          {'api_route': 'observed', 'config_key': 'observed'})
@@ -69,6 +128,10 @@ class StructuralOverlapDemoTests(unittest.TestCase):
             self.assertNotIn(forbidden, serialized)
         altered = json.loads(serialized)
         altered['cases'][0]['integrated'] = {'status': 'passed', 'return_value': 105}
+        with self.assertRaises(DEMO.DemoError):
+            DEMO._check_report(altered)
+        altered = json.loads(serialized)
+        altered['cases'][3]['cochange']['status'] = 'not_observed'
         with self.assertRaises(DEMO.DemoError):
             DEMO._check_report(altered)
 
