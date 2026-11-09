@@ -42,6 +42,8 @@ raw receiver/argument expressionはcallに必要な最小expressionだけです�
 | `utc_timestamp` | string | timezone-aware ISO-8601 UTC |
 | `exact_command` | array[string]/null | 取得できた場合のPython executableを含み得るargv |
 | `exact_command_capture` | string | command取得方法またはprogrammatic callで取得不能だった理由 |
+| `dont_write_bytecode_startup_flag` | boolean | `sys.flags.dont_write_bytecode`をmodule本体のguard前に観測した値 |
+| `dont_write_bytecode_on_module_entry` | boolean | `sys.dont_write_bytecode`をmodule本体のguard前に観測した値 |
 | `python_version` | string | runtime Python version |
 | `extractor_versions` | object | producer名→version stringまたは`null` |
 | `graph_schema_contract_version` | integer/null | rich graph producerが宣言したschema contract version |
@@ -70,7 +72,7 @@ reconstructed_script_argv
 unavailable_programmatic_call
 ```
 
-通常の`python -m tools.hunt`ではcommandを取得または再構築します。programmatic APIからcaller supplied commandなしで呼んだ場合は、推測せず`exact_command: null`とします。
+対応する`python -B -m tools.hunt`（または環境変数方式）ではcommandを取得または再構築します。`sys.orig_argv`がない場合の`reconstructed_*_argv`は起動時bytecode無効化が有効なら`-B`を含む等価な再実行commandであり、元の実引数や環境変数による起動方法を復元したものではありません。programmatic APIからcaller supplied commandなしで呼んだ場合は、推測せず`exact_command: null`とします。2つのbytecode booleanは文字通りの観測値であり、process全体にwriteがなかったことを証明しません。
 
 `extractor_versions`は次の2 keyを持ちます。
 

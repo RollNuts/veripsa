@@ -2,7 +2,7 @@
 
 Run:
 
-    python -m tools.hunt --target /absolute/repo --output /absolute/output
+    python -B -m tools.hunt --target /absolute/repo --output /absolute/output
 
 No GitHub App, database, SaaS, network client, or product ingest module is
 imported by this wrapper.
@@ -12,9 +12,23 @@ from __future__ import annotations
 
 import sys
 
-# The target and Veripsa worktrees are read-only inputs.  Set this before
-# importing extractor modules so their imports do not create __pycache__.
+# Observe both the immutable startup flag and the effective value before this
+# module changes it. The -m loader may already have cached this module itself.
+_BYTECODE_DISABLED_AT_STARTUP = bool(sys.flags.dont_write_bytecode)
+_BYTECODE_DISABLED_ON_ENTRY = bool(sys.dont_write_bytecode)
+# Protect later imports, including programmatic use; this cannot undo writes
+# made by the interpreter before executing this body.
 sys.dont_write_bytecode = True
+if __name__ == "__main__" and not (
+    _BYTECODE_DISABLED_AT_STARTUP and _BYTECODE_DISABLED_ON_ENTRY
+):
+    print(
+        "hunt: CLI requires python -B or PYTHONDONTWRITEBYTECODE=1 at startup; "
+        "analysis was not started. The interpreter may already have written "
+        "this module's startup cache.",
+        file=sys.stderr,
+    )
+    raise SystemExit(2)
 
 import argparse
 from dataclasses import dataclass
@@ -332,11 +346,16 @@ def _command_argv(
     if module_name:
         return [
             sys.executable,
+            *(["-B"] if _BYTECODE_DISABLED_AT_STARTUP else []),
             "-m",
             module_name,
             *sys.argv[1:],
         ], "reconstructed_module_argv"
-    return [sys.executable, *sys.argv], "reconstructed_script_argv"
+    return [
+        sys.executable,
+        *(["-B"] if _BYTECODE_DISABLED_AT_STARTUP else []),
+        *sys.argv,
+    ], "reconstructed_script_argv"
 
 
 def _maximum_rss_bytes() -> int | None:
@@ -623,6 +642,8 @@ def run_hunt(
         "utc_timestamp": dt.datetime.now(dt.timezone.utc).isoformat(),
         "exact_command": command_argv,
         "exact_command_capture": command_capture,
+        "dont_write_bytecode_startup_flag": _BYTECODE_DISABLED_AT_STARTUP,
+        "dont_write_bytecode_on_module_entry": _BYTECODE_DISABLED_ON_ENTRY,
         "python_version": platform.python_version(),
         "extractor_versions": extractor_versions,
         "graph_schema_contract_version": graph_schema_contract_version,
@@ -650,7 +671,7 @@ def run_hunt(
 
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="python -m tools.hunt",
+        prog="python -B -m tools.hunt",
         description=(
             "Build a full local rich graph and conservative Ruby/Rails audit indexes. "
             "No network, DB, GitHub App, or SaaS integration is used."
@@ -675,6 +696,7 @@ def _parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Parse/run the library API; embedding callers own interpreter startup."""
     args = _parser().parse_args(argv)
     config = HuntConfig(
         target=args.target,
