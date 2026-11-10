@@ -53,6 +53,19 @@ Code graphは静的な構造上の関係、Co-changeは一緒に変更された�
 
 [デモの手順・出力・限界](../examples/structural-overlap/README.md)と[期待出力](../examples/structural-overlap/expected-output.json)から、ケースと検査方法を追えます。このデモは既存の抽出器、オフライン評価器の粗い隣接関係、既存の`_cg_cochange.cochange_pairs`を利用しています。unionとintersectionはオフラインの候補集合の比較で、PostgreSQLのPR判定規則ではありません。Appには履歴の別枠advisoryと、特定の静的関係を裏付ける限定的な処理があります。[実装資産の整理](ANALYSIS_ASSETS.md#static-and-historical-evidence-complement-each-other)で区別しています。稼働中のGitHub Checkは検証せず、出力の`hosted_signal`は`not observed`です。
 
+## 自分のrepoで、変更前に読むファイルを探す
+
+Coreをcloneしたディレクトリから、次のコマンドで試せます。
+
+```sh
+python3.12 -B -m tools.review_file . _cg_cochange.py
+python3.12 -B -m tools.review_file /path/to/your/repo src/example.py
+```
+
+2行目の引数は、自分のGitリポジトリのルートと、そこからの相対ファイルパスへ置き換えます。既存のコードグラフによる候補と、過去に一緒に変更された候補を別々に返します。Python入力では追加パッケージ・DB・モデルAPIは不要です。
+
+解析できなかったファイル、短い履歴、shallow cloneなども出力します。候補が空でも「依存なし」「安全」とは判断しません。対象プロジェクトのコードを実行・編集せずに調べます。出力の読み方、`-B`が必要な理由、入力制限は[ローカルファイル調査の手順](LOCAL_FILE_REVIEW.md)を参照してください。
+
 ## 次の10分：設計と、別の問いを調べる
 
 [研究資料の索引](RESEARCH_INDEX.md)から、設計・Code graph・Co-change・評価・セキュリティ研究・実例・限界・開発経緯へ進めます。既存の再現結果と、一般的な精度・処理時間・メモリなどの未計測事項を分けて確認できます。

@@ -39,13 +39,14 @@ worse than none):
 from __future__ import annotations
 
 import collections
+import re
 import subprocess
 
 # A delimiter byte git will never emit inside a path or a hash, so we can split the log into commits reliably.
 _REC = "\x01"
 
 
-def _git_log_commits(repo_dir: str, window: int, timeout: int) -> list[set]:
+def _git_log_commits(repo_dir: str, window: int, timeout: int, *, strict: bool = False) -> list[set]:
     """Each of the last `window` non-merge commits → the SET of file paths it touched, with FILE RENAMES FOLLOWED
     so a renamed file's history is ONE continuous history under its CURRENT path (not two short, unrelated ones).
 
@@ -66,13 +67,50 @@ def _git_log_commits(repo_dir: str, window: int, timeout: int) -> list[set]:
     a rename — `old` keeps its own identity (a new file was forked from it) — so copies do not canonicalise. The
     rename commit itself touched BOTH the file (its path changed) and any co-edited files, so it counts as a change
     to the (canonical) renamed file, exactly as a normal edit would."""
+    # The opt-in local CLI must not execute repository diff drivers/textconv.
+    # Keep the legacy command unchanged for established callers.
+    strict_flags = ["--no-ext-diff", "--no-textconv"] if strict else []
     try:
-        out = subprocess.run(
-            ["git", "-C", repo_dir, "log", "--no-merges", "--name-status", "-M",
+        result = subprocess.run(
+            ["git", "-C", repo_dir, "log", *strict_flags, "--no-merges", "--name-status", "-M",
              f"--pretty=format:{_REC}%H", "-n", str(int(window))],
-            capture_output=True, text=True, timeout=timeout, check=False).stdout
+            capture_output=True, text=True, timeout=timeout, check=False)
+        if strict and result.returncode:
+            raise ValueError("Git history read failed")
+        out = result.stdout
     except (subprocess.SubprocessError, OSError):
+        if strict:
+            raise ValueError("Git history read failed") from None
         return []
+    except UnicodeError:
+        if strict:
+            raise ValueError("Git history read failed") from None
+        raise
+    if strict:
+        # Opt-in for local callers which must distinguish failed/unsupported
+        # input from no observed pairs. Preserve the established permissive
+        # parser and default callers below. Git-quoted/control-character paths
+        # are intentionally unsupported here rather than silently misparsed.
+        seen_record = False
+        for line in out.split("\n"):
+            if not line:
+                continue
+            if line.startswith(_REC):
+                if not re.fullmatch(_REC + r"[0-9a-f]{40}(?:[0-9a-f]{24})?", line):
+                    raise ValueError("Malformed Git history")
+                seen_record = True
+                continue
+            parts = line.split("\t")
+            status = parts[0]
+            rename = bool(re.fullmatch(r"[RC][0-9]{1,3}", status))
+            if (not seen_record or len(parts) != (3 if rename else 2)
+                    or not (rename or status in {"A", "D", "M", "T", "U", "X", "B"})):
+                raise ValueError("Malformed Git history")
+            for path in parts[1:]:
+                if (not path or path != path.strip() or path.startswith(('"', '/'))
+                        or any(ord(char) < 32 for char in path)
+                        or ".." in path.split("/")):
+                    raise ValueError("Unsupported Git history path")
     # Per commit, keep the RAW touched paths AND the renames it declared (old→new). We resolve to current names in a
     # SECOND pass once the whole rename chain is known (a rename seen in a NEWER commit must rewrite OLDER commits).
     raw_commits: list[set] = []                   # newest→oldest; each = set of RAW (as-of-that-commit) paths

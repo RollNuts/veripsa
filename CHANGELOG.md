@@ -4,6 +4,8 @@
 
 ### Added
 
+- A local `python3.12 -B -m tools.review_file CHECKOUT RELATIVE_FILE` command to list static and historical review candidates for one file using the existing graph and Co-change helpers. Reports separate worktree/history inputs, coverage, uncertainty, and thresholds; Git failures are errors rather than empty evidence. No database, model, or hosted App is required.
+- Opt-in strict history parsing for that command, preserving the existing Co-change callers' default behavior.
 - A local structural-overlap demo using Git, Python 3.12, the existing Core extractor, the offline evaluator's coarse adjacency helper, and the existing co-change producer. Synthetic cases compare individual execution, actual clean Git merges, static and historical candidates, their offline union/intersection, and combined execution.
 - Compatible related changes, incidental co-edits of unrelated files, dynamic lookup missed by static analysis, and a cold-start history alongside the failing function-contract example. The demo shows complementary evidence and limits without presenting a candidate as a bug verdict or absence as Clear.
 - Small API-route and configuration-key probes using existing parsers.
