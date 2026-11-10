@@ -109,6 +109,12 @@ def _state(root, target):
     stages, _ = _git(root, "ls-files", "--stage", "-z")
     if any(row.startswith("160000 ") for row in stages.split("\0")):
         raise ReviewError("submodule_input")
+    # Status can run clean/process filters while comparing worktree content.
+    # Query names only, including local include files, before any status read.
+    _, filter_status = _git(root, "config", "--includes", "--name-only", "--get-regexp",
+                            r"^filter\.", allowed=(0, 1))
+    if filter_status == 0:
+        raise ReviewError("unsupported_git_filters")
     status, _ = _git(root, "status", "--porcelain=v1", "--untracked-files=normal")
     with _regular(root, target).open("rb") as source:
         target_bytes = source.read(MAX_TARGET_BYTES + 1)
@@ -136,16 +142,30 @@ def review(checkout, relative_file):
         with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
             graph = X.build_graph(str(root))
         files = {node["path"] for node in graph["nodes"] if node.get("kind") == "file"}
-        target_nodes = [node for node in graph["nodes"]
+        documents = [node for node in graph["nodes"]
+                     if node.get("kind") in {"file", "config_file"}]
+        target_nodes = [node for node in documents
                         if node.get("kind") == "file" and node.get("path") == target]
+        target_documents = [node for node in documents if node.get("path") == target]
         coverage = {key: graph.get(key, 0)
                     for key in ("files_parsed", "files_failed", "files_skipped")}
+        # Substrate/import resolution can mark successfully parsed documents
+        # incomplete or ambiguous without increasing failed/skipped counters.
+        # Count unique paths per status, including configuration documents.
+        document_statuses = {
+            status: len({node["path"] for node in documents
+                         if node.get("analysis_status") == status and node.get("path")})
+            for status in ("failed", "incomplete", "ambiguous")
+        }
+        coverage["document_analysis_status_counts"] = document_statuses
         static_warnings = []
         if not target_nodes:
             static_warnings.append("target_not_parsed_as_source")
-        elif any(node.get("analysis_status") in {"failed", "incomplete"} for node in target_nodes):
+        if any(node.get("analysis_status") in {"failed", "incomplete", "ambiguous"}
+               for node in target_documents):
             static_warnings.append("target_analysis_incomplete")
-        if coverage["files_failed"] or coverage["files_skipped"]:
+        if (coverage["files_failed"] or coverage["files_skipped"]
+                or any(document_statuses.values())):
             static_warnings.append("checkout_analysis_incomplete")
         static = []
         for pair, kinds in BT.coupled_pairs(graph, files).items():

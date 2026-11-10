@@ -34,7 +34,7 @@ parsers; absent parsers are reported as reduced coverage.
 | --- | --- |
 | `static.candidates` | Relative paths and `import`, name-matched `call`, shared `schema`, or shared `config` evidence from `cochange_backtest.coupled_pairs`. |
 | `history.candidates` | Historical partners with joint-edit counts, directional probabilities, and lift from the existing Co-change helpers. |
-| `static.coverage` / `warnings` | Parsed, failed, and skipped file counts; whether the target or checkout has incomplete analysis. |
+| `static.coverage` / `warnings` | Parsed, failed, and skipped file counts, plus unique document paths per failed/incomplete/ambiguous status (including configuration documents); whether the target or checkout has incomplete analysis. |
 | `history.parameters` / `warnings` | Actual producer defaults, retained history, insufficient support, and shallow-history limits. |
 | `provenance` | Observed HEAD, dirty/shallow flags, target/status hashes, and the distinct worktree/history inputs. |
 
@@ -65,6 +65,8 @@ successful empty history.
 
 - Targets larger than 1,500,000 bytes, symlink targets/parents, submodules, and
   hidden index flags are rejected by this small command.
+- Configured Git filters, including filters loaded through included configuration,
+  are rejected before status inspection so clean/process programs cannot run.
 - The strict history path rejects Git-quoted/control-character or leading/trailing
   whitespace paths it cannot faithfully parse. Unicode paths are supported.
 - The producer's history window, large-commit exclusion, thresholds, and global
@@ -74,6 +76,8 @@ successful empty history.
   can escape detection. Use an isolated checkout without concurrent writers.
 - Git transports and lazy object fetching are disabled for the command. Missing
   local objects can cause a controlled failure rather than an automatic fetch.
+  Strict history reads also suppress signature display/verification, external
+  diff, and textconv programs; repository settings themselves are not changed.
 - Output contains paths, counts, hashes, and analysis metadata, not source/diff
   bodies, authors, commit messages, or remote URLs. Paths can still be sensitive;
   inspect the local output before sharing it.

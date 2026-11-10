@@ -104,6 +104,38 @@ class FileReviewTests(unittest.TestCase):
         self.assertIn("target_analysis_incomplete", report["static"]["warnings"])
         self.assertGreater(report["static"]["coverage"]["files_skipped"], 0)
 
+    def test_other_ambiguous_documents_degrade_uncertainty_with_zero_parser_errors(self):
+        self.write("target.py", "value = 5\n")
+        self.write("shared.py", "value = 1\n")
+        self.write("shared/__init__.py", "value = 2\n")
+        self.write("caller.py", "import shared\n")
+        self.commit()
+        report = R.review(self.repo, "target.py")
+        self.assertEqual(report["static"]["coverage"]["files_failed"], 0)
+        self.assertEqual(report["static"]["coverage"]["files_skipped"], 0)
+        self.assertEqual(report["static"]["coverage"]["document_analysis_status_counts"],
+                         {"failed": 0, "incomplete": 0, "ambiguous": 3})
+        self.assertEqual(report["static"]["status"], "uncertain")
+        self.assertIn("checkout_analysis_incomplete", report["static"]["warnings"])
+        self.assertEqual(report["static"]["candidates"], [])
+        related = R.review(self.repo, "caller.py")
+        self.assertIn("target_analysis_incomplete", related["static"]["warnings"])
+        self.assertEqual({row["file"] for row in related["static"]["candidates"]},
+                         {"shared.py", "shared/__init__.py"})
+
+    def test_config_document_status_is_counted_even_when_parser_totals_are_zero(self):
+        self.write("target.py", "value = 5\n")
+        self.commit()
+        graph = X.build_graph(str(self.repo))
+        graph["nodes"].append({"id": "settings.json", "kind": "config_file",
+                               "path": "settings.json", "analysis_status": "incomplete"})
+        with patch.object(X, "build_graph", return_value=graph):
+            report = R.review(self.repo, "target.py")
+        self.assertEqual(report["static"]["coverage"]["files_failed"], 0)
+        self.assertEqual(report["static"]["coverage"]["files_skipped"], 0)
+        self.assertEqual(report["static"]["coverage"]["document_analysis_status_counts"]["incomplete"], 1)
+        self.assertEqual(report["static"]["status"], "uncertain")
+
     def test_unborn_history_and_non_source_target_stay_uncertain(self):
         self.write("target.py", "value = 5\n")
         report = R.review(self.repo, "target.py")
@@ -222,6 +254,55 @@ class FileReviewTests(unittest.TestCase):
         self.assertEqual(json.loads(result.stdout)["status"], "error")
         self.assertFalse(marker.exists())
         self.assertNotIn(str(transport), result.stdout + result.stderr)
+
+    def test_signed_history_cannot_start_configured_signature_verifier(self):
+        self.write("target.py", "value = 5\n")
+        self.commit()
+        tree = self.git("rev-parse", "HEAD^{tree}").strip()
+        parent = self.git("rev-parse", "HEAD").strip()
+        body = (f"tree {tree}\nparent {parent}\n"
+                "author Fixture <fixture@example.invalid> 1 +0000\n"
+                "committer Fixture <fixture@example.invalid> 1 +0000\n"
+                "gpgsig -----BEGIN PGP SIGNATURE-----\n"
+                " synthetic-signature\n -----END PGP SIGNATURE-----\n\nSynthetic signed commit\n")
+        oid = subprocess.run(["git", "-C", str(self.repo), "hash-object", "-t", "commit", "-w", "--stdin"],
+                             input=body, text=True, capture_output=True, check=True).stdout.strip()
+        self.git("update-ref", "HEAD", oid)
+        marker = self.base / "verifier-started"
+        verifier = self.base / "verifier"
+        verifier.write_text("#!/bin/sh\nprintf called > " + shlex.quote(str(marker)) + "\nexit 1\n")
+        verifier.chmod(0o700)
+        self.git("config", "gpg.program", str(verifier))
+        self.git("config", "log.showSignature", "true")
+        self.git("log", "--show-signature", "-1")
+        self.assertTrue(marker.exists(), "positive control must actually invoke verifier")
+        marker.unlink()
+        result = self.run_cli()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertFalse(marker.exists())
+        self.assertNotIn(str(verifier), result.stdout + result.stderr)
+
+    def test_status_filter_from_included_config_is_rejected_before_execution(self):
+        self.write("target.py", "value = 5\n")
+        self.write(".gitattributes", "target.py filter=canary\n")
+        self.commit()
+        marker = self.base / "filter-started"
+        cleaner = self.base / "cleaner"
+        cleaner.write_text("#!/bin/sh\nprintf called > " + shlex.quote(str(marker)) + "\ncat\n")
+        cleaner.chmod(0o700)
+        included = self.base / "filters.config"
+        included.write_text('[filter "canary"]\n clean = ' + str(cleaner) + '\n required = true\n')
+        self.git("config", "include.path", str(included))
+        self.write("target.py", "value = 7\n")
+        self.git("status", "--porcelain=v1")
+        self.assertTrue(marker.exists(), "positive control must actually invoke cleaner")
+        marker.unlink()
+        result = self.run_cli()
+        self.assertEqual(result.returncode, 2)
+        self.assertEqual(json.loads(result.stdout),
+                         {"status": "error", "error": "unsupported_git_filters"})
+        self.assertFalse(marker.exists())
+        self.assertNotIn(str(cleaner), result.stdout + result.stderr)
 
 
 class StrictHistoryTests(unittest.TestCase):

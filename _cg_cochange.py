@@ -69,7 +69,7 @@ def _git_log_commits(repo_dir: str, window: int, timeout: int, *, strict: bool =
     to the (canonical) renamed file, exactly as a normal edit would."""
     # The opt-in local CLI must not execute repository diff drivers/textconv.
     # Keep the legacy command unchanged for established callers.
-    strict_flags = ["--no-ext-diff", "--no-textconv"] if strict else []
+    strict_flags = ["--no-ext-diff", "--no-textconv", "--no-show-signature"] if strict else []
     try:
         result = subprocess.run(
             ["git", "-C", repo_dir, "log", *strict_flags, "--no-merges", "--name-status", "-M",
