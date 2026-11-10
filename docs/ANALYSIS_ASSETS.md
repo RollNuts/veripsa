@@ -37,6 +37,19 @@ Neither route silently executes the App's full PR-decision pipeline.
 
 ## Use the existing local interfaces
 
+To ask which files to inspect before changing one file, run from the Core checkout:
+
+```sh
+python3.12 -B -m tools.review_file /path/to/local/checkout src/example.py
+```
+
+This read-only command reuses `build_graph`, `coupled_pairs`, and the existing
+Co-change counting/filtering helpers. It keeps static and historical candidates
+separate, records input/coverage limits, and rejects failed history reads instead
+of treating them as no relationship. [Commands and output semantics](LOCAL_FILE_REVIEW.md).
+
+For extraction-wide counts or the raw reference graph, the existing interface remains:
+
 ```sh
 python3.12 code_graph_extract.py /path/to/local/checkout --summary
 ```

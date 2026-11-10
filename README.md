@@ -59,6 +59,20 @@ It reuses the existing producers, not a new detector. The App's SQL corroboratio
 policy is separate from this local set comparison.
 [Commands, actual output, API/config probes, and limits](examples/structural-overlap/README.md).
 
+### Review a file in your own checkout
+
+From this Core checkout, ask which files to inspect before changing one file:
+
+```sh
+python3.12 -B -m tools.review_file /path/to/your/repo src/example.py
+```
+
+The local JSON report separates existing static relationship candidates from
+historical Co-change partners, and records coverage, thresholds, HEAD, dirty
+state, and uncertainty. Python input needs no added packages, database, account,
+or model. Candidates guide inspection; they do not predict bugs or approve a
+merge. [Try Core itself and read the output](docs/LOCAL_FILE_REVIEW.md).
+
 ### Use the existing work
 
 - **Research index:** [architecture, graph, Co-change, evaluation, security research, examples, limitations, and development history](docs/RESEARCH_INDEX.md), with measured evidence separated from unmeasured accuracy and performance.
