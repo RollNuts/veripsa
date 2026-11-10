@@ -38,6 +38,11 @@ parsers; absent parsers are reported as reduced coverage.
 | `history.parameters` / `warnings` | Actual producer defaults, retained history, insufficient support, and shallow-history limits. |
 | `provenance` | Observed HEAD, dirty/shallow flags, target/status hashes, and the distinct worktree/history inputs. |
 
+`target` and candidate `file` use the actual filesystem spelling.
+`provenance.history_target` and the history candidate's `git_file`, `a`, and `b`
+retain Git's spelling. Counts `n_a`/`n_b` and directional probabilities refer to
+those `a`/`b` paths. Git and filesystem spellings can differ under Unicode normalization.
+
 Each evidence section has a status:
 
 - `observed`: candidates passed that section's projection or filters.
@@ -65,6 +70,8 @@ successful empty history.
 
 - Targets larger than 1,500,000 bytes, symlink targets/parents, submodules, and
   hidden index flags are rejected by this small command.
+- NFC-normalized graph identities are mapped back to unique actual filesystem
+  names. Canonically colliding path spellings are rejected rather than guessed.
 - Configured Git filters, including filters loaded through included configuration,
   are rejected before status inspection so clean/process programs cannot run.
 - The strict history path rejects Git-quoted/control-character or leading/trailing

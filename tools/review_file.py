@@ -22,6 +22,7 @@ import json
 import os
 from pathlib import Path, PurePosixPath
 import subprocess
+import unicodedata
 
 MAX_TARGET_BYTES = 1_500_000
 
@@ -90,6 +91,34 @@ def _regular(root, relative):
     return path
 
 
+def _actual_relative(root, relative, *, missing_ok=False):
+    """Resolve only the selected path's components; never pick a Unicode alias."""
+    current, actual = root, []
+    for component in PurePosixPath(_relative(relative)).parts:
+        try:
+            with os.scandir(current) as entries:
+                matches = [entry for entry in entries
+                           if unicodedata.normalize("NFC", entry.name)
+                           == unicodedata.normalize("NFC", component)]
+        except (FileNotFoundError, NotADirectoryError):
+            if missing_ok:
+                return None
+            raise ReviewError("file_not_regular_within_checkout") from None
+        if len(matches) > 1:
+            raise ReviewError("ambiguous_normalized_path")
+        if not matches:
+            if missing_ok:
+                return None
+            raise ReviewError("file_not_regular_within_checkout")
+        if matches[0].is_symlink():
+            raise ReviewError("symlink_input")
+        actual.append(matches[0].name)
+        current = current / matches[0].name
+    result = _relative("/".join(actual))
+    _regular(root, result)
+    return result
+
+
 def _state(root, target):
     top, _ = _git(root, "rev-parse", "--show-toplevel")
     if Path(top.strip()).resolve() != root:
@@ -109,6 +138,14 @@ def _state(root, target):
     stages, _ = _git(root, "ls-files", "--stage", "-z")
     if any(row.startswith("160000 ") for row in stages.split("\0")):
         raise ReviewError("submodule_input")
+    # Git may precompose index paths on macOS while the filesystem returns NFD.
+    # Keep the unique raw Git spelling for history; do not rewrite history keys.
+    index_paths = {row.partition("\t")[2] for row in stages.split("\0") if "\t" in row}
+    history_targets = [path for path in index_paths
+                       if unicodedata.normalize("NFC", path)
+                       == unicodedata.normalize("NFC", target)]
+    if len(history_targets) > 1:
+        raise ReviewError("ambiguous_git_path")
     # Status can run clean/process filters while comparing worktree content.
     # Query names only, including local include files, before any status read.
     _, filter_status = _git(root, "config", "--includes", "--name-only", "--get-regexp",
@@ -122,6 +159,7 @@ def _state(root, target):
         raise ReviewError("target_exceeds_size_limit")
     return {
         "head": head.strip() if not code else None, "dirty": bool(status),
+        "history_target": history_targets[0] if history_targets else target,
         "shallow": shallow.strip() == "true",
         "status_sha256": hashlib.sha256(status.encode()).hexdigest(),
         "target_sha256": hashlib.sha256(target_bytes).hexdigest(),
@@ -130,7 +168,8 @@ def _state(root, target):
 
 def review(checkout, relative_file):
     root = Path(checkout).resolve(strict=True)
-    target = _relative(relative_file)
+    target = _actual_relative(root, relative_file)
+    graph_target = unicodedata.normalize("NFC", target)
     _regular(root, target)
     with _git_environment():
         before = _state(root, target)
@@ -145,8 +184,8 @@ def review(checkout, relative_file):
         documents = [node for node in graph["nodes"]
                      if node.get("kind") in {"file", "config_file"}]
         target_nodes = [node for node in documents
-                        if node.get("kind") == "file" and node.get("path") == target]
-        target_documents = [node for node in documents if node.get("path") == target]
+                        if node.get("kind") == "file" and node.get("path") == graph_target]
+        target_documents = [node for node in documents if node.get("path") == graph_target]
         coverage = {key: graph.get(key, 0)
                     for key in ("files_parsed", "files_failed", "files_skipped")}
         # Substrate/import resolution can mark successfully parsed documents
@@ -169,9 +208,9 @@ def review(checkout, relative_file):
             static_warnings.append("checkout_analysis_incomplete")
         static = []
         for pair, kinds in BT.coupled_pairs(graph, files).items():
-            if target in pair:
-                other = next(path for path in pair if path != target)
-                _regular(root, _relative(other))
+            if graph_target in pair:
+                other = next(path for path in pair if path != graph_target)
+                other = _actual_relative(root, other)
                 static.append({"file": other, "evidence_kinds": sorted(kinds)})
         static.sort(key=lambda row: row["file"])
 
@@ -192,25 +231,24 @@ def review(checkout, relative_file):
             key: parameters[key] for key in ("min_support", "min_prob", "min_lift", "max_pairs")
         })
         history, omitted = [], 0
+        history_target = before["history_target"]
         for pair in pairs:
-            if target not in (pair["a"], pair["b"]):
+            if history_target not in (pair["a"], pair["b"]):
                 continue
-            other = pair["b"] if pair["a"] == target else pair["a"]
-            other = _relative(other)
-            if not (root / other).exists():
+            git_other = pair["b"] if pair["a"] == history_target else pair["a"]
+            other = _actual_relative(root, git_other, missing_ok=True)
+            if other is None:
                 omitted += 1
                 continue
-            _regular(root, other)
-            history.append({"file": other, **{key: value for key, value in pair.items()
-                                             if key not in {"a", "b"}}})
+            history.append({"file": other, "git_file": git_other, **pair})
         history_warnings = []
         if before["head"] is None:
             history_warnings.append("unborn_head")
         if before["shallow"]:
             history_warnings.append("shallow_history")
-        if change[target] < parameters["min_support"]:
+        if change[history_target] < parameters["min_support"]:
             history_warnings.append("target_support_below_floor")
-        if before != _state(root, target):
+        if target != _actual_relative(root, graph_target) or before != _state(root, target):
             raise ReviewError("checkout_changed_during_analysis")
     return {
         "schema_version": "local-file-review-v1", "target": target,
@@ -225,7 +263,7 @@ def review(checkout, relative_file):
         "history": {
             "status": "uncertain" if history_warnings else "observed" if history else "not_observed",
             "parameters": parameters, "commits_read": len(commits), "commits_retained": n_total,
-            "target_change_count": change[target], "missing_current_partners_omitted": omitted,
+            "target_change_count": change[history_target], "missing_current_partners_omitted": omitted,
             "warnings": history_warnings, "candidates": history,
         },
         "limitations": [

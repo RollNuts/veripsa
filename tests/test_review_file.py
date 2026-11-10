@@ -1,4 +1,5 @@
 """Local-only file-review integration and strict history regression cases."""
+import contextlib
 import hashlib
 import json
 import os
@@ -7,6 +8,8 @@ import shlex
 import subprocess
 import sys
 import tempfile
+import types
+import unicodedata
 import unittest
 from unittest.mock import patch
 
@@ -303,6 +306,65 @@ class FileReviewTests(unittest.TestCase):
                          {"status": "error", "error": "unsupported_git_filters"})
         self.assertFalse(marker.exists())
         self.assertNotIn(str(cleaner), result.stdout + result.stderr)
+
+    def test_nfd_target_and_caller_preserve_real_file_and_git_history_spellings(self):
+        name = unicodedata.normalize("NFD", "café.py")
+        self.write(name, "def unicode_total():\n    return 5\n")
+        self.write("caller.py", "from café import unicode_total\nvalue = unicode_total()\n")
+        self.write("peer.py", "value = 7\n")
+        self.write("progress.txt", "0\n")
+        self.commit()
+        for i in range(5):
+            for path in (name, "peer.py"):
+                with (self.repo / path).open("a") as f:
+                    f.write(f"# batch {i}\n")
+            self.commit()
+        for i in range(8):
+            self.write("progress.txt", f"{i + 1}\n")
+            self.commit()
+        with (self.repo / name).open("a") as f:
+            f.write("# target-only update\n")
+        self.commit()
+        actual = next(p.name for p in self.repo.iterdir()
+                      if unicodedata.normalize("NFC", p.name) == "café.py")
+        target = R.review(self.repo, name)
+        self.assertEqual(target["target"], actual)
+        self.assertEqual([row["file"] for row in target["static"]["candidates"]], ["caller.py"])
+        self.assertEqual(target["static"]["status"], "observed")
+        self.assertEqual([row["file"] for row in target["history"]["candidates"]], ["peer.py"])
+        self.assertEqual(target["history"]["target_change_count"], 7)
+        self.assertIn(target["provenance"]["history_target"], self.git("ls-files", "-z").split("\0"))
+        history = target["history"]["candidates"][0]
+        self.assertEqual(history["a"], target["provenance"]["history_target"])
+        self.assertEqual(history["b"], "peer.py")
+        self.assertEqual((history["n_a"], history["n_b"], history["co"]), (7, 6, 6))
+        self.assertEqual((history["p_b_given_a"], history["p_a_given_b"]), (0.857, 1.0))
+        caller = R.review(self.repo, "caller.py")
+        self.assertEqual([row["file"] for row in caller["static"]["candidates"]], [actual])
+        peer = R.review(self.repo, "peer.py")
+        self.assertEqual(peer["history"]["candidates"][0]["file"], actual)
+        self.assertEqual(peer["history"]["candidates"][0]["git_file"],
+                         target["provenance"]["history_target"])
+
+    def test_real_nfc_nfd_collisions_are_rejected_when_filesystem_supports_them(self):
+        nfc, nfd = "café.py", unicodedata.normalize("NFD", "café.py")
+        self.write(nfc, "def unicode_total():\n    return 5\n")
+        self.write(nfd, "def unicode_total():\n    return 7\n")
+        self.write("caller.py", "from café import unicode_total\nvalue = unicode_total()\n")
+        matching = [p for p in self.repo.iterdir() if unicodedata.normalize("NFC", p.name) == nfc]
+        if len(matching) != 2:
+            self.skipTest("filesystem cannot represent two canonically equivalent file names")
+        self.commit()
+        for target in (nfc, "caller.py"):
+            with self.assertRaisesRegex(R.ReviewError, "ambiguous_normalized_path"):
+                R.review(self.repo, target)
+
+    def test_selected_component_collision_is_rejected_without_choosing_one(self):
+        names = ("café.py", unicodedata.normalize("NFD", "café.py"))
+        entries = [types.SimpleNamespace(name=name, is_symlink=lambda: False) for name in names]
+        with patch.object(R.os, "scandir", return_value=contextlib.nullcontext(entries)):
+            with self.assertRaisesRegex(R.ReviewError, "ambiguous_normalized_path"):
+                R._actual_relative(self.repo, names[0])
 
 
 class StrictHistoryTests(unittest.TestCase):
