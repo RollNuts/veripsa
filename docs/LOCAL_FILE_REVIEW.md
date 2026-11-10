@@ -7,14 +7,20 @@ account, model call, or additional Python package is needed for Python input.
 
 ## Run
 
-Use a POSIX environment with Git on `PATH` and Python 3.12. From the Veripsa
-checkout root, first try it on Core itself:
+Use a POSIX environment with Git on `PATH` and Python 3.12. From a directory
+where you keep local projects, obtain Core and first try it on itself:
 
 ```sh
+git clone https://github.com/RollNuts/veripsa.git
+cd veripsa
 python3.12 -B -m tools.review_file . _cg_cochange.py
 ```
 
-For your own checkout, replace both arguments:
+If you already have Core, start from its checkout root and run just the Python
+command. Keep the clone's history: a ZIP download is not a Git checkout, and a
+shallow clone limits Co-change evidence.
+
+For your own checkout, stay in Core's directory and replace both arguments:
 
 ```sh
 python3.12 -B -m tools.review_file /path/to/your/repo src/example.py
