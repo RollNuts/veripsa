@@ -327,6 +327,9 @@ Apache 2.0.
 
 ## Support
 
+- **Optional financial support:** a paid badge on the [Core walkthrough on Zenn](https://zenn.dev/veripsa/articles/graph-cochange-review-benchmark)
+  supports the author's public engineering work. It does not purchase a license,
+  hosted service, or priority support; the walkthrough and local examples remain free.
 - [Support guide](./SUPPORT.md) — support metadata, issue routing, and security
   boundaries.
 - Public issues belong in this repository's issue tracker. Do not file security
